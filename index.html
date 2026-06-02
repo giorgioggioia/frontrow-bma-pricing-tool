@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Front Row – Pricing Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --burgundy:   #84344E;
+    --blush:      #EACBBB;
+    --grey-mid:   #A7A8A9;
+    --grey-light: #E9E9EA;
+    --yellow:     #E3FF00;
+    --white:      #FFFFFF;
+    --text-dark:  #1a1a1a;
+    --text-mid:   #555;
+    --radius:     10px;
+    --shadow:     0 2px 12px rgba(0,0,0,0.08);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--grey-light);
+    color: var(--text-dark);
+    min-height: 100vh;
+  }
+
+  /* Header */
+  header {
+    background: var(--burgundy);
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .logo-mark {
+    width: 42px; height: 42px;
+    background: var(--yellow);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 18px; color: var(--burgundy);
+    flex-shrink: 0;
+  }
+  header h1 { color: var(--white); font-size: 20px; font-weight: 600; }
+  header p  { color: var(--blush); font-size: 13px; margin-top: 2px; }
+
+  /* Layout */
+  main {
+    max-width: 1200px;
+    margin: 36px auto;
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .card-header {
+    background: var(--burgundy);
+    color: var(--white);
+    padding: 14px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+  }
+  .card-body { padding: 20px; }
+
+  /* Filter bar */
+  .filter-bar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px; }
+  .filter-group label { font-size: 11px; font-weight: 600; color: var(--grey-mid); text-transform: uppercase; letter-spacing: .5px; }
+  .filter-group select {
+    border: 1.5px solid var(--grey-light);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text-dark);
+    background: var(--white);
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+  .filter-group select:focus { outline: none; border-color: var(--burgundy); }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: var(--grey-light); }
+  thead th {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--grey-mid);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    white-space: nowrap;
+  }
+  thead th.num { text-align: right; }
+  tbody tr { border-bottom: 1px solid var(--grey-light); transition: background .15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #fdf5f8; }
+  td { padding: 11px 12px; vertical-align: middle; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* Badges */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-ec     { background: #fae3d6; color: #84344E; }
+  .badge-vc     { background: #f6c7ad; color: #7a3010; }
+  .badge-master { background: #e9e9ea; color: #555; }
+  .badge-loc    { background: #c1e5f5; color: #1a6080; }
+
+  /* Inputs */
+  .qty-input {
+    width: 72px;
+    border: 1.5px solid var(--grey-light);
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 13px;
+    font-family: inherit;
+    text-align: center;
+    color: var(--text-dark);
+    transition: border-color .2s;
+  }
+  .qty-input:focus { outline: none; border-color: var(--burgundy); background: #fdf5f8; }
+
+  .row-total { font-weight: 600; color: var(--burgundy); }
+  .row-zero  { color: var(--grey-mid); }
+
+  /* Summary panel */
+  .summary-panel { position: sticky; top: 24px; }
+  .sum-block { display: flex; flex-direction: column; gap: 14px; padding: 20px; }
+  .sum-line { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+  .sum-line .label { color: var(--text-mid); }
+  .sum-line .value { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .sum-divider { border: none; border-top: 1px solid var(--grey-light); margin: 4px 0; }
+
+  .sum-addon {
+    background: #fdf5f8;
+    border: 1px dashed var(--blush);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+  }
+  .sum-addon .label { color: var(--burgundy); font-weight: 500; }
+  .sum-addon .value { font-weight: 600; color: var(--burgundy); font-variant-numeric: tabular-nums; }
+
+  .sum-total {
+    background: var(--burgundy);
+    border-radius: 8px;
+    padding: 16px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .sum-total .label { color: var(--blush); font-size: 13px; font-weight: 500; }
+  .sum-total .value { color: var(--yellow); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .export-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--yellow);
+    border: none;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--burgundy);
+    cursor: pointer;
+    transition: all .2s;
+    letter-spacing: .3px;
+  }
+  .export-btn:hover { background: #cce600; }
+
+  .reset-btn {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1.5px solid var(--grey-light);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--grey-mid);
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .reset-btn:hover { border-color: var(--burgundy); color: var(--burgundy); }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--grey-mid);
+    font-size: 14px;
+  }
+  .empty-state span { display: block; font-size: 32px; margin-bottom: 10px; }
+
+  .info-note {
+    font-size: 12px;
+    color: var(--grey-mid);
+    padding: 12px 20px;
+    border-top: 1px solid var(--grey-light);
+  }
+
+  @media (max-width: 760px) {
+    main { grid-template-columns: 1fr; }
+    .summary-panel { position: static; }
+    header { padding: 16px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">FR</div>
+  <div>
+    <h1>Pricing Tool</h1>
+    <p>Amazon Content Services — Quote Builder</p>
+  </div>
+</header>
+
+<main>
+  <!-- Left: line items -->
+  <div>
+    <div class="card">
+      <div class="card-header">Configure Your Quote</div>
+      <div class="card-body">
+
+        <div class="filter-bar">
+          <div class="filter-group">
+            <label>Account Type</label>
+            <select id="filter-ec-vc">
+              <option value="all">All</option>
+              <option value="EC">EC</option>
+              <option value="VC">VC</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Project Type</label>
+            <select id="filter-master-loc">
+              <option value="all">All</option>
+              <option value="MASTER">MASTER</option>
+              <option value="Localization">Localization</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Content Element</label>
+            <select id="filter-element">
+              <option value="all">All</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Account</th>
+                <th>Type</th>
+                <th>Element</th>
+                <th>Level</th>
+                <th class="num">Price / ASIN</th>
+                <th class="num"># ASINs</th>
+                <th class="num"># Languages</th>
+                <th class="num">Line Total</th>
+              </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+          </table>
+          <div id="empty-state" class="empty-state" style="display:none;">
+            <span>🔍</span>No items match your filters.
+          </div>
+        </div>
+
+      </div>
+      <div class="info-note">
+        💡 Enter <strong># ASINs</strong> and <strong># Languages</strong> for each row you need. Totals update instantly.
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: summary -->
+  <div class="summary-panel">
+    <div class="card">
+      <div class="card-header">Quote Summary</div>
+      <div class="sum-block">
+        <div class="sum-line">
+          <span class="label">Services Subtotal</span>
+          <span class="value" id="s-subtotal">€ 0,00</span>
+        </div>
+        <hr class="sum-divider"/>
+        <div class="sum-addon">
+          <span class="label">Project Management Add-on<br/><small style="font-weight:400;color:#a7a8a9">(10% of subtotal)</small></span>
+          <span class="value" id="s-addon">€ 0,00</span>
+        </div>
+        <div class="sum-total">
+          <span class="label">TOTAL</span>
+          <span class="value" id="s-total">€ 0,00</span>
+        </div>
+        <button class="export-btn" onclick="exportToExcel()">⬇ Export to Excel</button>
+        <button class="reset-btn" onclick="resetAll()">↺ Reset all quantities</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card-header">Legend</div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;font-size:13px;">
+          <span class="badge badge-ec">EC</span> Seller Central account
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:13px;">
+          <span class="badge badge-vc">VC</span> Vendor Central account
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:13px;">
+          <span class="badge badge-master">MASTER</span> New content creation
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:13px;">
+          <span class="badge badge-loc">Localization</span> Translation / adaptation
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+
+const PRICING = [
+  { ec_vc:'EC', type:'MASTER',       element:'KWR',            level:'N/A',                price:230.21  },
+  { ec_vc:'EC', type:'MASTER',       element:'EC-Content',     level:'MAIN',               price:306.95  },
+  { ec_vc:'EC', type:'MASTER',       element:'EC-Content',     level:'Variant',            price:38.37   },
+  { ec_vc:'VC', type:'MASTER',       element:'Gallery Images', level:'Category Prototype', price:656.02  },
+  { ec_vc:'VC', type:'MASTER',       element:'Gallery Images', level:'MAIN',               price:230.21  },
+  { ec_vc:'VC', type:'MASTER',       element:'Gallery Images', level:'Variant',            price:38.37   },
+  { ec_vc:'VC', type:'MASTER',       element:'Aplus',          level:'Category Prototype', price:1457.83 },
+  { ec_vc:'VC', type:'MASTER',       element:'Aplus',          level:'MAIN',               price:230.21  },
+  { ec_vc:'EC', type:'Localization', element:'KWR',            level:'N/A',                price:230.21  },
+  { ec_vc:'EC', type:'Localization', element:'EC-Content',     level:'MAIN',               price:230.21  },
+  { ec_vc:'EC', type:'Localization', element:'EC-Content',     level:'Variant',            price:38.37   },
+  { ec_vc:'VC', type:'Localization', element:'Gallery Images', level:'MAIN',               price:153.47  },
+  { ec_vc:'VC', type:'Localization', element:'Gallery Images', level:'Variant',            price:38.37   },
+  { ec_vc:'VC', type:'Localization', element:'Aplus',          level:'MAIN',               price:191.85  },
+  { ec_vc:'VC', type:'Localization', element:'Aplus',          level:'Variant',            price:38.37   },
+];
+
+const state = PRICING.map(() => ({ asins: 0, langs: 0 }));
+
+// Populate element filter dynamically
+const elements = [...new Set(PRICING.map(r => r.element))];
+const elFilter = document.getElementById('filter-element');
+elements.forEach(e => {
+  const o = document.createElement('option');
+  o.value = e; o.textContent = e;
+  elFilter.appendChild(o);
+});
+
+function fmt(n) {
+  return '€ ' + n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function getFilters() {
+  return {
+    ec_vc:   document.getElementById('filter-ec-vc').value,
+    type:    document.getElementById('filter-master-loc').value,
+    element: document.getElementById('filter-element').value,
+  };
+}
+
+function matches(row, filters) {
+  if (filters.ec_vc   !== 'all' && row.ec_vc   !== filters.ec_vc)   return false;
+  if (filters.type    !== 'all' && row.type     !== filters.type)    return false;
+  if (filters.element !== 'all' && row.element  !== filters.element) return false;
+  return true;
+}
+
+function renderTable() {
+  const filters = getFilters();
+  const tbody   = document.getElementById('table-body');
+  const empty   = document.getElementById('empty-state');
+  tbody.innerHTML = '';
+  let visible = 0;
+
+  PRICING.forEach((row, idx) => {
+    if (!matches(row, filters)) return;
+    visible++;
+
+    const asins     = state[idx].asins;
+    const langs     = state[idx].langs;
+    const lineTotal = row.price * asins * langs;
+
+    const ecBadge   = `<span class="badge badge-${row.ec_vc.toLowerCase()}">${row.ec_vc}</span>`;
+    const typeBadge = row.type === 'MASTER'
+      ? `<span class="badge badge-master">MASTER</span>`
+      : `<span class="badge badge-loc">Localization</span>`;
+
+    const totalClass = lineTotal > 0 ? 'row-total' : 'row-zero';
+    const totalStr   = lineTotal > 0 ? fmt(lineTotal) : '—';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${ecBadge}</td>
+      <td>${typeBadge}</td>
+      <td>${row.element}</td>
+      <td style="color:var(--text-mid);font-size:12px;">${row.level}</td>
+      <td class="num">${fmt(row.price)}</td>
+      <td class="num">
+        <input class="qty-input" type="number" min="0" value="${asins}"
+          data-idx="${idx}" data-field="asins" placeholder="0"/>
+      </td>
+      <td class="num">
+        <input class="qty-input" type="number" min="0" value="${langs}"
+          data-idx="${idx}" data-field="langs" placeholder="0"/>
+      </td>
+      <td class="num ${totalClass}">${totalStr}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  empty.style.display = visible === 0 ? 'block' : 'none';
+
+  // Input listeners — use 'input' event so it reacts on every keystroke
+  tbody.querySelectorAll('.qty-input').forEach(input => {
+    input.addEventListener('input', e => {
+      const idx   = parseInt(e.target.dataset.idx);
+      const field = e.target.dataset.field;
+      const val   = Math.max(0, parseInt(e.target.value) || 0);
+      state[idx][field] = val;
+      updateSummary();
+      // Update just this row's total without full re-render (avoids losing focus)
+      const row       = e.target.closest('tr');
+      const lastCell  = row.querySelector('td:last-child');
+      const s         = state[idx];
+      const lineTotal = PRICING[idx].price * s.asins * s.langs;
+      if (lineTotal > 0) {
+        lastCell.textContent  = fmt(lineTotal);
+        lastCell.className    = 'num row-total';
+      } else {
+        lastCell.textContent  = '—';
+        lastCell.className    = 'num row-zero';
+      }
+    });
+  });
+
+  updateSummary();
+}
+
+function updateSummary() {
+  const subtotal = PRICING.reduce((sum, row, idx) => {
+    return sum + row.price * state[idx].asins * state[idx].langs;
+  }, 0);
+  const addon = subtotal * 0.1;
+  const total = subtotal + addon;
+  document.getElementById('s-subtotal').textContent = fmt(subtotal);
+  document.getElementById('s-addon').textContent    = fmt(addon);
+  document.getElementById('s-total').textContent    = fmt(total);
+}
+
+function resetAll() {
+  state.forEach(s => { s.asins = 0; s.langs = 0; });
+  renderTable();
+}
+
+function exportToExcel() {
+  const today = new Date().toISOString().slice(0, 10);
+
+  const activeRows = PRICING
+    .map((row, idx) => ({ ...row, ...state[idx] }))
+    .filter(r => r.asins > 0 || r.langs > 0);
+
+  if (activeRows.length === 0) {
+    alert('No quantities entered yet. Fill in # ASINs and/or # Languages first.');
+    return;
+  }
+
+  const subtotal = activeRows.reduce((s, r) => s + r.price * r.asins * r.langs, 0);
+  const addon    = subtotal * 0.1;
+  const total    = subtotal + addon;
+
+  const headers = [
+    'Account Type', 'Project Type', 'Content Element', 'Content Level',
+    'Price / ASIN (€)', '# ASINs', '# Languages', 'Line Total (€)'
+  ];
+
+  const dataRows = activeRows.map(r => [
+    r.ec_vc, r.type, r.element, r.level,
+    r.price, r.asins, r.langs,
+    r.price * r.asins * r.langs
+  ]);
+
+  const wsData = [
+    ['Front Row – Pricing Quote', '', '', '', '', '', '', `Date: ${today}`],
+    [],
+    headers,
+    ...dataRows,
+    [],
+    ['', '', '', '', '', '', 'Services Subtotal',              subtotal],
+    ['', '', '', '', '', '', 'Project Management Add-on (10%)', addon],
+    ['', '', '', '', '', '', 'TOTAL',                          total],
+  ];
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [
+    { wch:14 }, { wch:16 }, { wch:18 }, { wch:22 },
+    { wch:16 }, { wch:10 }, { wch:28 }, { wch:16 }
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Quote');
+  XLSX.writeFile(wb, `FrontRow_Quote_${today}.xlsx`);
+}
+
+// Filter listeners
+['filter-ec-vc', 'filter-master-loc', 'filter-element'].forEach(id => {
+  document.getElementById(id).addEventListener('change', renderTable);
+});
+
+// Init
+renderTable();
+
+</script>
+</body>
+</html>
