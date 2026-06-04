@@ -322,7 +322,7 @@
             </select>
           </div>
           <div class="filter-group">
-            <label>Project Type</label>
+            <label>MASTER or Localization</label>
             <select id="filter-master-loc">
               <option value="all">All</option>
               <option value="MASTER">MASTER</option>
@@ -443,7 +443,7 @@
   An array of objects — each object is one row in the table.
   Properties:
     ec_vc   → account type (EC = Seller Central, VC = Vendor Central)
-    type    → project type (MASTER = new content, Localization = translation)
+    type    → MASTER or Localization (MASTER = new content, Localization = translation)
     element → the content deliverable (KWR, EC-Content, Gallery Images, Aplus)
     level   → the variant level within that element
     price   → cost per ASIN in euros
@@ -680,7 +680,7 @@ function exportToExcel() {
 
   // Column headers for the spreadsheet
   const headers = [
-    'EC or VC', 'Project Type', 'Content Element', 'Content Level',
+    'EC or VC', 'MASTER or Localization', 'Content Element', 'Content Level',
     'Price / ASIN (€)', '# ASINs', '# Languages', 'Line Total (€)'
   ];
 
