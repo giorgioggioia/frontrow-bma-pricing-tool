@@ -1,242 +1,297 @@
 <!DOCTYPE html>
+<!-- DOCTYPE tells the browser this is a modern HTML5 document -->
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Front Row – Pricing Tool</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-<style>
-  :root {
-    --burgundy:   #84344E;
-    --blush:      #EACBBB;
-    --grey-mid:   #A7A8A9;
-    --grey-light: #E9E9EA;
-    --yellow:     #E3FF00;
-    --white:      #FFFFFF;
-    --text-dark:  #1a1a1a;
-    --text-mid:   #555;
-    --radius:     10px;
-    --shadow:     0 2px 12px rgba(0,0,0,0.08);
-  }
+  <!-- Everything inside <head> is metadata and resources — not visible content -->
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <!-- UTF-8 lets the browser correctly display all characters (including €, accents, etc.) -->
+  <meta charset="UTF-8" />
 
-  body {
-    font-family: 'Inter', sans-serif;
-    background: var(--grey-light);
-    color: var(--text-dark);
-    min-height: 100vh;
-  }
+  <!-- This makes the page scale correctly on phones/tablets instead of zooming out -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-  /* Header */
-  header {
-    background: var(--burgundy);
-    padding: 20px 40px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  }
-  .logo-mark {
-    width: 42px; height: 42px;
-    background: var(--yellow);
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: 18px; color: var(--burgundy);
-    flex-shrink: 0;
-  }
-  header h1 { color: var(--white); font-size: 20px; font-weight: 600; }
-  header p  { color: var(--blush); font-size: 13px; margin-top: 2px; }
+  <!-- The text shown in the browser tab -->
+  <title>Front Row – Pricing Tool</title>
 
-  /* Layout */
-  main {
-    max-width: 1200px;
-    margin: 36px auto;
-    padding: 0 24px;
-    display: grid;
-    grid-template-columns: 1fr 340px;
-    gap: 24px;
-    align-items: start;
-  }
+  <!-- Load the Inter font from Google Fonts (weights 300–700 = light to bold) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 
-  /* Cards */
-  .card {
-    background: var(--white);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    overflow: hidden;
-  }
-  .card-header {
-    background: var(--burgundy);
-    color: var(--white);
-    padding: 14px 20px;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: .5px;
-    text-transform: uppercase;
-  }
-  .card-body { padding: 20px; }
+  <style>
+    /*
+      CSS CUSTOM PROPERTIES ("variables")
+      Defined once on :root (= the whole page) and reused everywhere with var(--name).
+      Changing a value here updates it across the entire page instantly.
+    */
+    :root {
+      --burgundy:   #84344E;   /* Dark pink/red — primary brand colour */
+      --blush:      #EACBBB;   /* Light pink — used for subtle accents */
+      --grey-mid:   #A7A8A9;   /* Medium grey — labels, placeholder text */
+      --grey-light: #E9E9EA;   /* Light grey — backgrounds, dividers */
+      --yellow:     #E3FF00;   /* Bright yellow — highlight/CTA colour */
+      --white:      #FFFFFF;
+      --text-dark:  #1a1a1a;   /* Near-black — main body text */
+      --text-mid:   #555;      /* Mid-grey — secondary text */
+      --radius:     10px;      /* Border radius used on cards */
+      --shadow:     0 2px 12px rgba(0,0,0,0.08); /* Subtle drop shadow on cards */
+    }
 
-  /* Filter bar */
-  .filter-bar {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 20px;
-  }
-  .filter-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px; }
-  .filter-group label { font-size: 11px; font-weight: 600; color: var(--grey-mid); text-transform: uppercase; letter-spacing: .5px; }
-  .filter-group select {
-    border: 1.5px solid var(--grey-light);
-    border-radius: 6px;
-    padding: 8px 10px;
-    font-size: 13px;
-    font-family: inherit;
-    color: var(--text-dark);
-    background: var(--white);
-    cursor: pointer;
-    transition: border-color .2s;
-  }
-  .filter-group select:focus { outline: none; border-color: var(--burgundy); }
+    /*
+      Global reset: removes default browser margins/padding and switches all elements
+      to "border-box" sizing (width includes padding & border — much easier to work with).
+      The * selector means "every element on the page".
+    */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* Table */
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  thead tr { background: var(--grey-light); }
-  thead th {
-    padding: 10px 12px;
-    text-align: left;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--grey-mid);
-    text-transform: uppercase;
-    letter-spacing: .4px;
-    white-space: nowrap;
-  }
-  thead th.num { text-align: right; }
-  tbody tr { border-bottom: 1px solid var(--grey-light); transition: background .15s; }
-  tbody tr:last-child { border-bottom: none; }
-  tbody tr:hover { background: #fdf5f8; }
-  td { padding: 11px 12px; vertical-align: middle; }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    /* Base page styles */
+    body {
+      font-family: 'Inter', sans-serif; /* Use the Google Font we loaded above */
+      background: var(--grey-light);    /* Light grey page background */
+      color: var(--text-dark);
+      min-height: 100vh;                /* Page is always at least the full viewport height */
+    }
 
-  /* Badges */
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-  }
-  .badge-ec     { background: #fae3d6; color: #84344E; }
-  .badge-vc     { background: #f6c7ad; color: #7a3010; }
-  .badge-master { background: #e9e9ea; color: #555; }
-  .badge-loc    { background: #c1e5f5; color: #1a6080; }
+    /* ─── HEADER ─────────────────────────────────────────────── */
+    header {
+      background: var(--burgundy);
+      padding: 20px 40px;
+      display: flex;          /* Lay children (logo + text) out in a horizontal row */
+      align-items: center;    /* Vertically centre them */
+      gap: 16px;              /* Space between logo and text */
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
 
-  /* Inputs */
-  .qty-input {
-    width: 72px;
-    border: 1.5px solid var(--grey-light);
-    border-radius: 6px;
-    padding: 5px 8px;
-    font-size: 13px;
-    font-family: inherit;
-    text-align: center;
-    color: var(--text-dark);
-    transition: border-color .2s;
-  }
-  .qty-input:focus { outline: none; border-color: var(--burgundy); background: #fdf5f8; }
+    /* The yellow "FR" square logo in the top-left corner */
+    .logo-mark {
+      width: 42px; height: 42px;
+      background: var(--yellow);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; /* Centre the "FR" text */
+      font-weight: 700; font-size: 18px; color: var(--burgundy);
+      flex-shrink: 0; /* Don't let it squish on narrow screens */
+    }
+    header h1 { color: var(--white); font-size: 20px; font-weight: 600; }
+    header p  { color: var(--blush); font-size: 13px; margin-top: 2px; }
 
-  .row-total { font-weight: 600; color: var(--burgundy); }
-  .row-zero  { color: var(--grey-mid); }
+    /* ─── PAGE LAYOUT ────────────────────────────────────────── */
+    /*
+      CSS Grid — divides <main> into two columns:
+        - Left column:  flexible, takes up all remaining space (1fr)
+        - Right column: fixed at 340px wide (the summary panel)
+    */
+    main {
+      max-width: 1200px;    /* Never stretch wider than 1200px */
+      margin: 36px auto;    /* Centre horizontally with space above/below */
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 24px;
+      align-items: start;   /* Don't stretch columns to match each other's height */
+    }
 
-  /* Summary panel */
-  .summary-panel { position: sticky; top: 24px; }
-  .sum-block { display: flex; flex-direction: column; gap: 14px; padding: 20px; }
-  .sum-line { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
-  .sum-line .label { color: var(--text-mid); }
-  .sum-line .value { font-weight: 600; font-variant-numeric: tabular-nums; }
-  .sum-divider { border: none; border-top: 1px solid var(--grey-light); margin: 4px 0; }
+    /* ─── CARDS ──────────────────────────────────────────────── */
+    /* White rounded boxes that contain sections of the UI */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden; /* Clip child elements to the rounded corners */
+    }
+    /* Dark burgundy banner at the top of each card */
+    .card-header {
+      background: var(--burgundy);
+      color: var(--white);
+      padding: 14px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+    .card-body { padding: 20px; }
 
-  .sum-addon {
-    background: #fdf5f8;
-    border: 1px dashed var(--blush);
-    border-radius: 8px;
-    padding: 12px 14px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 13px;
-  }
-  .sum-addon .label { color: var(--burgundy); font-weight: 500; }
-  .sum-addon .value { font-weight: 600; color: var(--burgundy); font-variant-numeric: tabular-nums; }
+    /* ─── FILTER BAR ─────────────────────────────────────────── */
+    /* Horizontal row of dropdown menus above the table */
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap; /* Wrap onto the next line if the screen is too narrow */
+      margin-bottom: 20px;
+    }
+    /* Each label + dropdown pair */
+    .filter-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px; }
+    .filter-group label {
+      font-size: 11px; font-weight: 600;
+      color: var(--grey-mid);
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+    .filter-group select {
+      border: 1.5px solid var(--grey-light);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text-dark);
+      background: var(--white);
+      cursor: pointer;
+      transition: border-color .2s; /* Smoothly animate the border colour change */
+    }
+    /* Highlight the dropdown with a burgundy border when focused */
+    .filter-group select:focus { outline: none; border-color: var(--burgundy); }
 
-  .sum-total {
-    background: var(--burgundy);
-    border-radius: 8px;
-    padding: 16px 14px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .sum-total .label { color: var(--blush); font-size: 13px; font-weight: 500; }
-  .sum-total .value { color: var(--yellow); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    /* ─── TABLE ──────────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; } /* Allows horizontal scrolling on small screens */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    /* Grey header row */
+    thead tr { background: var(--grey-light); }
+    thead th {
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 11px; font-weight: 600;
+      color: var(--grey-mid);
+      text-transform: uppercase; letter-spacing: .4px;
+      white-space: nowrap; /* Don't let column headers wrap onto two lines */
+    }
+    thead th.num { text-align: right; } /* Right-align numeric column headers */
+    /* Dividing lines between rows + hover highlight */
+    tbody tr { border-bottom: 1px solid var(--grey-light); transition: background .15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fdf5f8; } /* Subtle pink tint on hover */
+    td { padding: 11px 12px; vertical-align: middle; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; } /* Tabular nums = digits always same width, so columns align */
 
-  .export-btn {
-    width: 100%;
-    padding: 12px;
-    background: var(--yellow);
-    border: none;
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--burgundy);
-    cursor: pointer;
-    transition: all .2s;
-    letter-spacing: .3px;
-  }
-  .export-btn:hover { background: #cce600; }
+    /* ─── BADGES ─────────────────────────────────────────────── */
+    /* Pill-shaped coloured labels (EC, VC, MASTER, Localization) */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px; /* Very rounded → pill shape */
+      font-size: 11px; font-weight: 600;
+    }
+    .badge-ec     { background: #fae3d6; color: #84344E; }
+    .badge-vc     { background: #f6c7ad; color: #7a3010; }
+    .badge-master { background: #e9e9ea; color: #555; }
+    .badge-loc    { background: #c1e5f5; color: #1a6080; }
 
-  .reset-btn {
-    width: 100%;
-    padding: 10px;
-    background: transparent;
-    border: 1.5px solid var(--grey-light);
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--grey-mid);
-    cursor: pointer;
-    transition: all .2s;
-  }
-  .reset-btn:hover { border-color: var(--burgundy); color: var(--burgundy); }
+    /* ─── QUANTITY INPUTS ────────────────────────────────────── */
+    /* Small number fields in the "# ASINs" and "# Languages" columns */
+    .qty-input {
+      width: 72px;
+      border: 1.5px solid var(--grey-light);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 13px;
+      font-family: inherit;
+      text-align: center;
+      color: var(--text-dark);
+      transition: border-color .2s;
+    }
+    /* Burgundy border + pink background when the user clicks into the field */
+    .qty-input:focus { outline: none; border-color: var(--burgundy); background: #fdf5f8; }
 
-  .empty-state {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--grey-mid);
-    font-size: 14px;
-  }
-  .empty-state span { display: block; font-size: 32px; margin-bottom: 10px; }
+    .row-total { font-weight: 600; color: var(--burgundy); } /* Non-zero line total */
+    .row-zero  { color: var(--grey-mid); }                   /* Zero line total (shows "—") */
 
-  .info-note {
-    font-size: 12px;
-    color: var(--grey-mid);
-    padding: 12px 20px;
-    border-top: 1px solid var(--grey-light);
-  }
+    /* ─── SUMMARY PANEL (right column) ──────────────────────── */
+    .summary-panel { position: sticky; top: 24px; } /* Sticks to the top of the viewport while scrolling */
+    .sum-block { display: flex; flex-direction: column; gap: 14px; padding: 20px; }
+    .sum-line { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+    .sum-line .label { color: var(--text-mid); }
+    .sum-line .value { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .sum-divider { border: none; border-top: 1px solid var(--grey-light); margin: 4px 0; }
 
-  @media (max-width: 760px) {
-    main { grid-template-columns: 1fr; }
-    .summary-panel { position: static; }
-    header { padding: 16px 20px; }
-  }
-</style>
+    /* Dashed pink box for the 10% project management add-on line */
+    .sum-addon {
+      background: #fdf5f8;
+      border: 1px dashed var(--blush);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+    .sum-addon .label { color: var(--burgundy); font-weight: 500; }
+    .sum-addon .value { font-weight: 600; color: var(--burgundy); font-variant-numeric: tabular-nums; }
+
+    /* Dark burgundy TOTAL row at the bottom of the summary */
+    .sum-total {
+      background: var(--burgundy);
+      border-radius: 8px;
+      padding: 16px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sum-total .label { color: var(--blush); font-size: 13px; font-weight: 500; }
+    .sum-total .value { color: var(--yellow); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    /* Yellow "Export to Excel" button */
+    .export-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--yellow);
+      border: none;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 13px; font-weight: 700;
+      color: var(--burgundy);
+      cursor: pointer;
+      transition: all .2s;
+      letter-spacing: .3px;
+    }
+    .export-btn:hover { background: #cce600; } /* Slightly darker yellow on hover */
+
+    /* Ghost "Reset" button */
+    .reset-btn {
+      width: 100%;
+      padding: 10px;
+      background: transparent;
+      border: 1.5px solid var(--grey-light);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 13px; font-weight: 500;
+      color: var(--grey-mid);
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .reset-btn:hover { border-color: var(--burgundy); color: var(--burgundy); }
+
+    /* Message shown when no table rows match the active filters */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--grey-mid);
+      font-size: 14px;
+    }
+    .empty-state span { display: block; font-size: 32px; margin-bottom: 10px; }
+
+    /* Small instructional footnote below the table */
+    .info-note {
+      font-size: 12px;
+      color: var(--grey-mid);
+      padding: 12px 20px;
+      border-top: 1px solid var(--grey-light);
+    }
+
+    /*
+      RESPONSIVE BREAKPOINT
+      On screens narrower than 760px (most phones):
+        - Switch from two columns to a single stacked column
+        - Remove sticky positioning from the summary panel
+        - Shrink header padding
+    */
+    @media (max-width: 760px) {
+      main { grid-template-columns: 1fr; }
+      .summary-panel { position: static; }
+      header { padding: 16px 20px; }
+    }
+  </style>
 </head>
 <body>
 
+<!-- ═══════════════════════════════════════════════════════════
+     HEADER
+     The top bar: logo mark + title + subtitle
+═══════════════════════════════════════════════════════════ -->
 <header>
   <div class="logo-mark">FR</div>
   <div>
@@ -245,16 +300,21 @@
   </div>
 </header>
 
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN — two-column grid (table left, summary right)
+═══════════════════════════════════════════════════════════ -->
 <main>
-  <!-- Left: line items -->
+
+  <!-- LEFT COLUMN: filter bar + pricing table -->
   <div>
     <div class="card">
       <div class="card-header">Configure Your Quote</div>
       <div class="card-body">
 
+        <!-- Filter dropdowns — JavaScript listens for changes and re-renders the table -->
         <div class="filter-bar">
           <div class="filter-group">
-            <label>Content Type</label>
+            <label>EC or VC</label>
             <select id="filter-ec-vc">
               <option value="all">All</option>
               <option value="EC">EC</option>
@@ -271,12 +331,15 @@
           </div>
           <div class="filter-group">
             <label>Content Element</label>
+            <!-- This dropdown is populated dynamically by JavaScript
+                 so it always reflects the unique elements in the PRICING data -->
             <select id="filter-element">
               <option value="all">All</option>
             </select>
           </div>
         </div>
 
+        <!-- The pricing table — <tbody> is filled in by JavaScript -->
         <div class="table-wrap">
           <table>
             <thead>
@@ -291,43 +354,63 @@
                 <th class="num">Line Total</th>
               </tr>
             </thead>
+            <!-- JavaScript writes rows into this <tbody> -->
             <tbody id="table-body"></tbody>
           </table>
+          <!-- Shown only when all rows are filtered out; hidden otherwise -->
           <div id="empty-state" class="empty-state" style="display:none;">
             <span>🔍</span>No items match your filters.
           </div>
         </div>
 
       </div>
+      <!-- Hint text below the table -->
       <div class="info-note">
         💡 Enter <strong># ASINs</strong> and <strong># Languages</strong> for each row you need. Totals update instantly.
       </div>
     </div>
   </div>
 
-  <!-- Right: summary -->
+  <!-- RIGHT COLUMN: sticky summary panel + legend -->
   <div class="summary-panel">
+
+    <!-- Quote totals card -->
     <div class="card">
       <div class="card-header">Quote Summary</div>
       <div class="sum-block">
+
+        <!-- Services subtotal (sum of all line totals) -->
         <div class="sum-line">
           <span class="label">Services Subtotal</span>
           <span class="value" id="s-subtotal">€ 0,00</span>
         </div>
         <hr class="sum-divider"/>
+
+        <!-- 10% project management fee -->
         <div class="sum-addon">
-          <span class="label">Project Management Add-on<br/><small style="font-weight:400;color:#a7a8a9">(10% of subtotal)</small></span>
+          <span class="label">
+            Project Management Add-on<br/>
+            <small style="font-weight:400;color:#a7a8a9">(10% of subtotal)</small>
+          </span>
           <span class="value" id="s-addon">€ 0,00</span>
         </div>
+
+        <!-- Grand total = subtotal + add-on -->
         <div class="sum-total">
           <span class="label">TOTAL</span>
           <span class="value" id="s-total">€ 0,00</span>
         </div>
+
+        <!-- Calls exportToExcel() defined in the script below -->
         <button class="export-btn" onclick="exportToExcel()">⬇ Export to Excel</button>
+
+        <!-- Calls resetAll() to zero out all quantities -->
         <button class="reset-btn" onclick="resetAll()">↺ Reset all quantities</button>
+
       </div>
     </div>
 
+    <!-- Legend card — explains what each badge colour means -->
     <div class="card" style="margin-top:16px;">
       <div class="card-header">Legend</div>
       <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
@@ -345,12 +428,27 @@
         </div>
       </div>
     </div>
-  </div>
+
+  </div><!-- end .summary-panel -->
 </main>
 
+<!-- External library: SheetJS — used to generate the .xlsx file on the client side
+     (no server needed; the file is created entirely in the browser) -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script>
 
+<script>
+/*
+  ═══════════════════════════════════════════════════════════════
+  PRICING DATA
+  An array of objects — each object is one row in the table.
+  Properties:
+    ec_vc   → account type (EC = Seller Central, VC = Vendor Central)
+    type    → project type (MASTER = new content, Localization = translation)
+    element → the content deliverable (KWR, EC-Content, Gallery Images, Aplus)
+    level   → the variant level within that element
+    price   → cost per ASIN in euros
+  ═══════════════════════════════════════════════════════════════
+*/
 const PRICING = [
   { ec_vc:'EC', type:'MASTER',       element:'KWR',            level:'N/A',                price:230.21  },
   { ec_vc:'EC', type:'MASTER',       element:'EC-Content',     level:'MAIN',               price:306.95  },
@@ -369,21 +467,43 @@ const PRICING = [
   { ec_vc:'VC', type:'Localization', element:'Aplus',          level:'Variant',            price:38.37   },
 ];
 
+/*
+  STATE
+  Mirrors the PRICING array but tracks only what the user has typed:
+    asins → number of ASINs entered for that row
+    langs → number of languages entered for that row
+  Initialised to 0 for every row. Persists across filter changes so values
+  aren't lost when the table re-renders.
+*/
 const state = PRICING.map(() => ({ asins: 0, langs: 0 }));
 
-// Populate element filter dynamically
+/*
+  POPULATE THE "Content Element" FILTER DROPDOWN
+  Extract unique element names from PRICING using Set (which removes duplicates),
+  then create one <option> per element and append it to the <select>.
+*/
 const elements = [...new Set(PRICING.map(r => r.element))];
 const elFilter = document.getElementById('filter-element');
 elements.forEach(e => {
-  const o = document.createElement('option');
+  const o = document.createElement('option'); // Create a new <option> element
   o.value = e; o.textContent = e;
-  elFilter.appendChild(o);
+  elFilter.appendChild(o); // Add it inside the <select>
 });
 
+/*
+  fmt(n) — NUMBER FORMATTER
+  Converts a number to a euro string in German locale format
+  e.g. 1234.5 → "€ 1.234,50"
+  (German format uses dots for thousands and commas for decimals)
+*/
 function fmt(n) {
   return '€ ' + n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+/*
+  getFilters() — READ CURRENT FILTER VALUES
+  Returns the currently selected value from each of the three dropdowns.
+*/
 function getFilters() {
   return {
     ec_vc:   document.getElementById('filter-ec-vc').value,
@@ -392,6 +512,11 @@ function getFilters() {
   };
 }
 
+/*
+  matches(row, filters) — FILTER TEST
+  Returns true if a PRICING row should be shown given the active filters.
+  A value of 'all' means "don't filter on this field".
+*/
 function matches(row, filters) {
   if (filters.ec_vc   !== 'all' && row.ec_vc   !== filters.ec_vc)   return false;
   if (filters.type    !== 'all' && row.type     !== filters.type)    return false;
@@ -399,29 +524,42 @@ function matches(row, filters) {
   return true;
 }
 
+/*
+  renderTable() — BUILD THE TABLE
+  Clears the <tbody> and re-draws it from scratch based on:
+    - The PRICING data
+    - The current filter selections
+    - The current state (user-entered quantities)
+  Called once on page load and again whenever a filter changes.
+*/
 function renderTable() {
   const filters = getFilters();
   const tbody   = document.getElementById('table-body');
   const empty   = document.getElementById('empty-state');
-  tbody.innerHTML = '';
-  let visible = 0;
+  tbody.innerHTML = ''; // Wipe existing rows
+  let visible = 0;      // Count how many rows pass the filter
 
   PRICING.forEach((row, idx) => {
-    if (!matches(row, filters)) return;
+    if (!matches(row, filters)) return; // Skip rows that don't match
     visible++;
 
+    // Pull the stored quantities for this row
     const asins     = state[idx].asins;
     const langs     = state[idx].langs;
+    // Line total = price per ASIN × number of ASINs × number of languages
     const lineTotal = row.price * asins * langs;
 
+    // Build the badge HTML strings
     const ecBadge   = `<span class="badge badge-${row.ec_vc.toLowerCase()}">${row.ec_vc}</span>`;
     const typeBadge = row.type === 'MASTER'
       ? `<span class="badge badge-master">MASTER</span>`
       : `<span class="badge badge-loc">Localization</span>`;
 
+    // Choose styling for the line total cell
     const totalClass = lineTotal > 0 ? 'row-total' : 'row-zero';
-    const totalStr   = lineTotal > 0 ? fmt(lineTotal) : '—';
+    const totalStr   = lineTotal > 0 ? fmt(lineTotal) : '—'; // Show "—" when zero
 
+    // Create a <tr> element and inject all cell HTML into it
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${ecBadge}</td>
@@ -439,108 +577,166 @@ function renderTable() {
       </td>
       <td class="num ${totalClass}">${totalStr}</td>
     `;
-    tbody.appendChild(tr);
+    tbody.appendChild(tr); // Add the row to the table
   });
 
+  // Show/hide the "no results" message
   empty.style.display = visible === 0 ? 'block' : 'none';
 
-  // Input listeners — use 'input' event so it reacts on every keystroke
+  /*
+    ATTACH INPUT LISTENERS TO QUANTITY FIELDS
+    We use the 'input' event (fires on every keystroke) rather than 'change'
+    (fires only when focus leaves) so totals update in real time.
+
+    data-idx   → which PRICING row this input belongs to
+    data-field → whether it's 'asins' or 'langs'
+  */
   tbody.querySelectorAll('.qty-input').forEach(input => {
     input.addEventListener('input', e => {
-      const idx   = parseInt(e.target.dataset.idx);
-      const field = e.target.dataset.field;
+      const idx   = parseInt(e.target.dataset.idx);   // Which row
+      const field = e.target.dataset.field;            // 'asins' or 'langs'
+      // Parse the value; treat empty/invalid as 0; enforce minimum of 0
       const val   = Math.max(0, parseInt(e.target.value) || 0);
-      state[idx][field] = val;
-      updateSummary();
-      // Update just this row's total without full re-render (avoids losing focus)
-      const row       = e.target.closest('tr');
+      state[idx][field] = val; // Save into state
+
+      updateSummary(); // Recalculate the totals panel
+
+      /*
+        Update only this row's "Line Total" cell — no full re-render.
+        Avoiding a full re-render is important because re-rendering would
+        destroy and recreate the <input> the user is typing into,
+        which would cause it to lose focus mid-typing.
+      */
+      const row       = e.target.closest('tr');        // The parent <tr>
       const lastCell  = row.querySelector('td:last-child');
       const s         = state[idx];
       const lineTotal = PRICING[idx].price * s.asins * s.langs;
       if (lineTotal > 0) {
-        lastCell.textContent  = fmt(lineTotal);
-        lastCell.className    = 'num row-total';
+        lastCell.textContent = fmt(lineTotal);
+        lastCell.className   = 'num row-total';
       } else {
-        lastCell.textContent  = '—';
-        lastCell.className    = 'num row-zero';
+        lastCell.textContent = '—';
+        lastCell.className   = 'num row-zero';
       }
     });
   });
 
-  updateSummary();
+  updateSummary(); // Ensure the summary panel is correct after every render
 }
 
+/*
+  updateSummary() — RECALCULATE AND DISPLAY TOTALS
+  Iterates over every PRICING row (including hidden/filtered-out ones)
+  so that quantities entered on filtered rows are still counted.
+*/
 function updateSummary() {
+  // Array.reduce() accumulates a running sum across all rows
   const subtotal = PRICING.reduce((sum, row, idx) => {
     return sum + row.price * state[idx].asins * state[idx].langs;
-  }, 0);
-  const addon = subtotal * 0.1;
-  const total = subtotal + addon;
+  }, 0); // Start the running total at 0
+
+  const addon = subtotal * 0.1;       // 10% project management fee
+  const total = subtotal + addon;     // Grand total
+
+  // Write the formatted values into the summary panel
   document.getElementById('s-subtotal').textContent = fmt(subtotal);
   document.getElementById('s-addon').textContent    = fmt(addon);
   document.getElementById('s-total').textContent    = fmt(total);
 }
 
+/*
+  resetAll() — CLEAR ALL QUANTITIES
+  Sets every row's asins and langs back to 0, then re-renders.
+*/
 function resetAll() {
   state.forEach(s => { s.asins = 0; s.langs = 0; });
   renderTable();
 }
 
+/*
+  exportToExcel() — GENERATE AND DOWNLOAD AN .XLSX FILE
+  Uses the SheetJS library (loaded via <script> above).
+  Only rows where the user has entered at least one quantity are included.
+*/
 function exportToExcel() {
+  // Today's date in YYYY-MM-DD format (used in the filename and the spreadsheet)
   const today = new Date().toISOString().slice(0, 10);
 
+  // Merge each PRICING row with its state values, then keep only active rows
   const activeRows = PRICING
     .map((row, idx) => ({ ...row, ...state[idx] }))
     .filter(r => r.asins > 0 || r.langs > 0);
 
+  // Guard: don't export an empty sheet
   if (activeRows.length === 0) {
     alert('No quantities entered yet. Fill in # ASINs and/or # Languages first.');
     return;
   }
 
+  // Recalculate totals for the export (only from active rows)
   const subtotal = activeRows.reduce((s, r) => s + r.price * r.asins * r.langs, 0);
   const addon    = subtotal * 0.1;
   const total    = subtotal + addon;
 
+  // Column headers for the spreadsheet
   const headers = [
-    'Content Type', 'Project Type', 'Content Element', 'Content Level',
+    'EC or VC', 'Project Type', 'Content Element', 'Content Level',
     'Price / ASIN (€)', '# ASINs', '# Languages', 'Line Total (€)'
   ];
 
+  // One array per data row (SheetJS converts arrays-of-arrays into cells)
   const dataRows = activeRows.map(r => [
     r.ec_vc, r.type, r.element, r.level,
     r.price, r.asins, r.langs,
     r.price * r.asins * r.langs
   ]);
 
+  /*
+    Build the full sheet as an array-of-arrays (aoa).
+    Each inner array = one row; each element = one cell.
+    Empty strings create blank cells; empty arrays create blank rows.
+  */
   const wsData = [
-    ['Front Row – Pricing Quote', '', '', '', '', '', '', `Date: ${today}`],
-    [],
-    headers,
-    ...dataRows,
-    [],
-    ['', '', '', '', '', '', 'Services Subtotal',              subtotal],
+    ['Front Row – Pricing Quote', '', '', '', '', '', '', `Date: ${today}`], // Title row
+    [],                                                                        // Blank row
+    headers,                                                                   // Column headers
+    ...dataRows,                                                               // Data rows (spread = flatten one level)
+    [],                                                                        // Blank row before totals
+    ['', '', '', '', '', '', 'Services Subtotal',               subtotal],
     ['', '', '', '', '', '', 'Project Management Add-on (10%)', addon],
-    ['', '', '', '', '', '', 'TOTAL',                          total],
+    ['', '', '', '', '', '', 'TOTAL',                           total],
   ];
 
+  // Create a new workbook and worksheet using SheetJS utilities
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Set column widths (wch = width in characters)
   ws['!cols'] = [
     { wch:14 }, { wch:16 }, { wch:18 }, { wch:22 },
     { wch:16 }, { wch:10 }, { wch:28 }, { wch:16 }
   ];
 
+  // Attach the worksheet to the workbook under the tab name "Quote"
   XLSX.utils.book_append_sheet(wb, ws, 'Quote');
+
+  // Trigger a file download in the browser
   XLSX.writeFile(wb, `FrontRow_Quote_${today}.xlsx`);
 }
 
-// Filter listeners
+/*
+  FILTER CHANGE LISTENERS
+  Whenever the user changes any dropdown, re-render the table.
+  The forEach loops over all three filter IDs at once.
+*/
 ['filter-ec-vc', 'filter-master-loc', 'filter-element'].forEach(id => {
   document.getElementById(id).addEventListener('change', renderTable);
 });
 
-// Init
+/*
+  INITIALISE
+  Render the table once when the page first loads.
+*/
 renderTable();
 
 </script>
