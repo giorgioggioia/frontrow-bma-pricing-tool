@@ -1156,8 +1156,11 @@ function handleProjectClick(clientId, projectId, event) {
 document.addEventListener('mousedown', e => {
   // If the click is on or inside a project row, let handleProjectClick manage it
   if (e.target.closest('.project-row')) return;
-  // Also don't clear when clicking the selection-bar "Clear" button itself
+  // Also don't clear when clicking the selection-bar itself
   if (e.target.closest('.selection-bar')) return;
+  // Also don't clear when clicking the Export button (it lives in the summary panel)
+  if (e.target.closest('#export-btn')) return;
+
   // Anything else → clear all selections
   if (selectedProjectIds.size > 0) {
     selectedProjectIds.clear();
@@ -1202,6 +1205,7 @@ function createClient() {
   clients.unshift(client); // Newest first
   openClientOverviewById(client.id);
   renderSidebar();
+  scheduleSave();
   // Auto-focus the name input
   setTimeout(() => { const el = document.getElementById('client-name-input'); if (el) { el.focus(); el.select(); } }, 60);
 }
@@ -1214,6 +1218,7 @@ function deleteClient(id, event) {
   event.stopPropagation(); // Don't also trigger the client-row click
   if (!confirm('Delete this client and all its projects? This cannot be undone.')) return;
   clients = clients.filter(c => c.id !== id);
+  scheduleSave();
   // If we deleted the active client, return to the welcome screen
   if (activeClientId === id) {
     activeClientId  = null;
@@ -1223,6 +1228,7 @@ function deleteClient(id, event) {
   } else {
     renderSidebar();
   }
+  scheduleSave();
 }
 
 /* ── Project CRUD ────────────────────────────────────────────── */
@@ -1239,6 +1245,7 @@ function createProject(clientId) {
   client.expanded = true; // Make sure the client group is expanded
   openQuoteBuilder(clientId, proj.id);
   renderSidebar();
+  scheduleSave();
   // Auto-focus project name
   setTimeout(() => { const el = document.getElementById('project-name-input'); if (el) { el.focus(); el.select(); } }, 60);
 }
@@ -1513,6 +1520,7 @@ function onClientNameChange() {
   if (!client) return;
   client.name = document.getElementById('client-name-input').value || 'Untitled Client';
   renderSidebar();
+  scheduleSave();
 }
 
 /* ─── QUOTE BUILDER — LIVE STATE ────────────────────────────── */
@@ -1569,6 +1577,7 @@ function onProjectNameChange() {
   proj.name = document.getElementById('project-name-input').value || 'Untitled Project';
   document.getElementById('bc-project').textContent = proj.name;
   renderSidebar();
+  scheduleSave();
 }
 
 /* ─── STANDARD TABLE ─────────────────────────────────────────── */
@@ -1652,6 +1661,7 @@ function renderTable() {
 
       updateSummary();
       renderSidebar(); // Refresh sidebar total badge
+      scheduleSave();
 
       // In-place cell update — no full re-render (avoids losing focus)
       const tr   = e.target.closest('tr');
@@ -1759,6 +1769,7 @@ function renderHybridGroup(group, data, tbody) {
       renderHybridGroup(grp, grp === 'master' ? HYBRID_MASTER : HYBRID_LOC, tbody);
       updateSummary();
       renderSidebar();
+      scheduleSave();
     });
   });
 
@@ -1786,6 +1797,7 @@ function renderHybridGroup(group, data, tbody) {
 
       updateSummary();
       renderSidebar();
+      scheduleSave();
     });
   }
 }
@@ -1880,6 +1892,12 @@ function resetAll() {
 */
 function exportToExcel() {
   saveQuoteState(); // Flush any unsaved input before reading project data
+
+  // IMPORTANT:
+  // Exporting should not change the user's selection. Some older code paths
+  // can indirectly re-sync selection to the active project; we snapshot the
+  // current selection now and use that snapshot for this export run.
+  const selectedSnapshot = new Set(selectedProjectIds);
 
   const today = new Date().toISOString().slice(0, 10);
   const wb    = XLSX.utils.book_new();
@@ -2090,11 +2108,11 @@ function exportToExcel() {
   */
   let targets = []; // Array of { client, proj }
 
-  if (selectedProjectIds.size > 0) {
+  if (selectedSnapshot.size > 0) {
     // Iterate all clients/projects in sidebar order, keeping only selected ones
     clients.forEach(c => {
       c.projects.forEach(p => {
-        if (selectedProjectIds.has(projectKey(c.id, p.id))) {
+        if (selectedSnapshot.has(projectKey(c.id, p.id))) {
           targets.push({ client: c, proj: p });
         }
       });
@@ -2287,23 +2305,111 @@ function escHtml(s) {
 });
 document.getElementById('hybrid-filter-type').addEventListener('change', renderHybrid);
 
+/* ─── AUTOSAVE (single-user) ─────────────────────────────────── */
+
+const STORAGE_KEY = 'frontrow_pricing_tool_v1';
+
+function serializeAppState() {
+  return {
+    schemaVersion: 1,
+    savedAt: Date.now(),
+    clients,
+    activeClientId,
+    activeProjectId,
+  };
+}
+
+function hydrateAppState(state) {
+  clients = Array.isArray(state.clients) ? state.clients : [];
+  activeClientId = state.activeClientId || null;
+  activeProjectId = state.activeProjectId || null;
+
+  // Ensure any missing fields are backfilled for older saves
+  clients.forEach(c => {
+    if (typeof c.expanded !== 'boolean') c.expanded = true;
+    if (!Array.isArray(c.projects)) c.projects = [];
+    c.projects.forEach(p => {
+      if (!Array.isArray(p.state)) p.state = PRICING.map(() => ({ asins: 0, langs: 0 }));
+      if (!p.hybrid) p.hybrid = { master: { selectedIdx: -1, langs: 0 }, loc: { selectedIdx: -1, langs: 0 } };
+      if (!p.hybrid.master) p.hybrid.master = { selectedIdx: -1, langs: 0 };
+      if (!p.hybrid.loc) p.hybrid.loc = { selectedIdx: -1, langs: 0 };
+    });
+  });
+
+  // Selection is ephemeral; do not restore
+  selectedProjectIds.clear();
+  lastClickedKey = null;
+}
+
+let _saveTimer = null;
+function scheduleSave() {
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    try {
+      const payload = JSON.stringify(serializeAppState());
+      localStorage.setItem(STORAGE_KEY, payload);
+    } catch (e) {
+      console.warn('Autosave failed:', e);
+    }
+  }, 500);
+}
+
+function loadSavedState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.schemaVersion !== 1) return null;
+    return parsed;
+  } catch (e) {
+    console.warn('Could not load saved state:', e);
+    return null;
+  }
+}
+
 /* ─── INIT ───────────────────────────────────────────────────── */
 /*
-  On first load: show the welcome screen with no client selected.
-  Seed one example client so the UI isn't completely empty.
+  On first load: try to restore from autosave.
+  If no save exists, seed one example client.
 */
 (function init() {
-  // Pre-seed with "Bosch Mobility Aftermarket" as the first client
+  // Load hard-coded time-per-ASIN catalogue
+  loadTimeCatalogueFromBMA();
+
+  const saved = loadSavedState();
+  if (saved) {
+    hydrateAppState(saved);
+    renderSidebar();
+
+    // Restore last screen
+    if (activeClientId && activeProjectId) {
+      openQuoteBuilder(activeClientId, activeProjectId);
+    } else if (activeClientId) {
+      openClientOverviewById(activeClientId);
+    } else {
+      showScreen('welcome');
+    }
+
+    updateExportButton();
+    return;
+  }
+
+  // No saved data → seed
   const bosch = { id: uid(), name: 'Bosch Mobility Aftermarket', expanded: true, projects: [] };
   clients.push(bosch);
   renderSidebar();
   showScreen('welcome');
-  // Open the client overview immediately so it doesn't feel empty
   openClientOverviewById(bosch.id);
   updateExportButton();
-  // Load hard-coded time-per-ASIN catalogue
-  loadTimeCatalogueFromBMA();
+  scheduleSave();
 })();
+
+/*
+  Autosave on tab close / background.
+*/
+window.addEventListener('beforeunload', () => {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeAppState())); } catch (_) {}
+});
 </script>
 </body>
 </html>
