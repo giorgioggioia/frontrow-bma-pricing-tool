@@ -1,297 +1,622 @@
 <!DOCTYPE html>
-<!-- DOCTYPE tells the browser this is a modern HTML5 document -->
 <html lang="en">
 <head>
-  <!-- Everything inside <head> is metadata and resources — not visible content -->
-
-  <!-- UTF-8 lets the browser correctly display all characters (including €, accents, etc.) -->
   <meta charset="UTF-8" />
-
-  <!-- This makes the page scale correctly on phones/tablets instead of zooming out -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
-  <!-- The text shown in the browser tab -->
   <title>Front Row – Pricing Tool</title>
-
-  <!-- Load the Inter font from Google Fonts (weights 300–700 = light to bold) -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 
   <style>
-    /*
-      CSS CUSTOM PROPERTIES ("variables")
-      Defined once on :root (= the whole page) and reused everywhere with var(--name).
-      Changing a value here updates it across the entire page instantly.
-    */
+    /* ─── DESIGN TOKENS ──────────────────────────────────────── */
     :root {
-      --burgundy:   #84344E;   /* Dark pink/red — primary brand colour */
-      --blush:      #EACBBB;   /* Light pink — used for subtle accents */
-      --grey-mid:   #A7A8A9;   /* Medium grey — labels, placeholder text */
-      --grey-light: #E9E9EA;   /* Light grey — backgrounds, dividers */
-      --yellow:     #E3FF00;   /* Bright yellow — highlight/CTA colour */
-      --white:      #FFFFFF;
-      --text-dark:  #1a1a1a;   /* Near-black — main body text */
-      --text-mid:   #555;      /* Mid-grey — secondary text */
-      --radius:     10px;      /* Border radius used on cards */
-      --shadow:     0 2px 12px rgba(0,0,0,0.08); /* Subtle drop shadow on cards */
+      --burgundy:     #84344E;
+      --burgundy-dk:  #5e2437;
+      --blush:        #EACBBB;
+      --grey-mid:     #A7A8A9;
+      --grey-light:   #E9E9EA;
+      --yellow:       #E3FF00;
+      --white:        #FFFFFF;
+      --text-dark:    #1a1a1a;
+      --text-mid:     #555;
+      --radius:       10px;
+      --shadow:       0 2px 12px rgba(0,0,0,0.08);
+      --teal:         #1a6080;
+      --teal-light:   #c1e5f5;
+      --sidebar-bg:   #1e0f18;   /* Very dark sidebar background */
+      --sidebar-w:    268px;
     }
 
-    /*
-      Global reset: removes default browser margins/padding and switches all elements
-      to "border-box" sizing (width includes padding & border — much easier to work with).
-      The * selector means "every element on the page".
-    */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* Base page styles */
     body {
-      font-family: 'Inter', sans-serif; /* Use the Google Font we loaded above */
-      background: var(--grey-light);    /* Light grey page background */
+      font-family: 'Inter', sans-serif;
+      background: var(--grey-light);
       color: var(--text-dark);
-      min-height: 100vh;                /* Page is always at least the full viewport height */
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
 
-    /* ─── HEADER ─────────────────────────────────────────────── */
+    /* ═══════════════════════════════════════════════════════════
+       HEADER
+    ═══════════════════════════════════════════════════════════ */
     header {
       background: var(--burgundy);
-      padding: 20px 40px;
-      display: flex;          /* Lay children (logo + text) out in a horizontal row */
-      align-items: center;    /* Vertically centre them */
-      gap: 16px;              /* Space between logo and text */
+      padding: 15px 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      flex-shrink: 0;
+      z-index: 10;
     }
-
-    /* The yellow "FR" square logo in the top-left corner */
     .logo-mark {
-      width: 42px; height: 42px;
+      width: 36px; height: 36px;
       background: var(--yellow);
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center; /* Centre the "FR" text */
-      font-weight: 700; font-size: 18px; color: var(--burgundy);
-      flex-shrink: 0; /* Don't let it squish on narrow screens */
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 15px; color: var(--burgundy);
+      flex-shrink: 0;
     }
-    header h1 { color: var(--white); font-size: 20px; font-weight: 600; }
-    header p  { color: var(--blush); font-size: 13px; margin-top: 2px; }
+    header h1 { color: var(--white); font-size: 17px; font-weight: 600; }
+    header p  { color: var(--blush); font-size: 11px; margin-top: 1px; }
 
-    /* ─── PAGE LAYOUT ────────────────────────────────────────── */
+    /* ═══════════════════════════════════════════════════════════
+       APP SHELL — sidebar | content | summary
+    ═══════════════════════════════════════════════════════════ */
+    .app-shell {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      height: calc(100vh - 66px);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       SIDEBAR
+       Two-level hierarchy: Client rows → Project rows (indented)
+    ═══════════════════════════════════════════════════════════ */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow: hidden;
+      border-right: 1px solid rgba(255,255,255,0.04);
+    }
+
+    /* ── Top action button: "+ New Client" ── */
+    .sidebar-top {
+      padding: 12px 10px 6px;
+      flex-shrink: 0;
+    }
+    .btn-new-client {
+      width: 100%;
+      padding: 9px 12px;
+      background: var(--burgundy);
+      border: none;
+      border-radius: 7px;
+      color: var(--white);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: background .15s;
+      letter-spacing: .2px;
+    }
+    .btn-new-client:hover { background: var(--burgundy-dk); }
+
+    /* Scrollable client + project list */
+    .sidebar-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 6px 20px;
+    }
+    .sidebar-scroll::-webkit-scrollbar { width: 3px; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+
+    /* ── CLIENT ROW ── */
+    .client-group { margin-bottom: 2px; }
+
+    .client-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 8px 8px 10px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: background .15s;
+      user-select: none;
+    }
+    .client-row:hover { background: rgba(255,255,255,0.06); }
+    /* Active client (overview screen showing) */
+    .client-row.active { background: rgba(132,52,78,0.35); }
+
+    /* Chevron — rotates when client is expanded */
+    .client-chevron {
+      font-size: 10px;
+      color: rgba(255,255,255,0.4);
+      transition: transform .2s;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .client-chevron.open { transform: rotate(90deg); }
+
+    .client-icon { font-size: 13px; flex-shrink: 0; }
+
+    .client-name {
+      flex: 1;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.9);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+      letter-spacing: .1px;
+    }
+    .client-row.active .client-name { color: var(--white); }
+
+    /* Small project-count badge next to the client name */
+    .client-count {
+      font-size: 10px;
+      color: rgba(255,255,255,0.3);
+      flex-shrink: 0;
+    }
+
+    /* Delete client button — only on hover */
+    .client-delete-btn {
+      background: none; border: none;
+      color: rgba(255,255,255,0.3);
+      font-size: 14px; line-height: 1;
+      padding: 2px 3px; border-radius: 3px;
+      cursor: pointer; flex-shrink: 0;
+      display: none;
+      transition: color .15s;
+    }
+    .client-row:hover .client-delete-btn { display: block; }
+    .client-delete-btn:hover { color: #ff7070; }
+
+    /* ── PROJECT LIST (inside a client, shown when expanded) ── */
+    .project-list {
+      /* Collapsible — toggled via max-height animation */
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height .25s ease;
+    }
+    .project-list.open { max-height: 1000px; }
+
+    /* "+ New Project" inside a client */
+    .btn-new-project {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 3px 6px 3px 26px;
+      padding: 6px 8px;
+      background: none;
+      border: 1px dashed rgba(255,255,255,0.15);
+      border-radius: 5px;
+      color: rgba(255,255,255,0.45);
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .btn-new-project:hover {
+      border-color: rgba(255,255,255,0.35);
+      color: rgba(255,255,255,0.8);
+      background: rgba(255,255,255,0.04);
+    }
+
+    /* Individual project row */
+    .project-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 1px 6px 1px 26px;  /* Indent to show hierarchy */
+      padding: 7px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background .15s;
+      min-width: 0;
+    }
+    .project-row:hover { background: rgba(255,255,255,0.06); }
+    .project-row.active { background: rgba(132,52,78,0.5); }
+
+    .project-row-icon { font-size: 11px; flex-shrink: 0; opacity: .6; }
+
+    .project-row-name {
+      flex: 1;
+      font-size: 12px;
+      color: rgba(255,255,255,0.75);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+    .project-row.active .project-row-name { color: var(--white); font-weight: 500; }
+
+    .project-row-total {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--yellow);
+      flex-shrink: 0;
+      opacity: .85;
+    }
+
+    .project-delete-btn {
+      background: none; border: none;
+      color: rgba(255,255,255,0.3);
+      font-size: 13px; line-height: 1;
+      padding: 2px 3px; border-radius: 3px;
+      cursor: pointer; flex-shrink: 0;
+      display: none;
+      transition: color .15s;
+    }
+    .project-row:hover .project-delete-btn { display: block; }
+    .project-delete-btn:hover { color: #ff7070; }
+
     /*
-      CSS Grid — divides <main> into two columns:
-        - Left column:  flexible, takes up all remaining space (1fr)
-        - Right column: fixed at 340px wide (the summary panel)
+      MULTI-SELECTION HIGHLIGHT
+      Applied to .project-row when the project is in the selectedProjectIds Set.
+      Uses a yellow-tinted left border so it's visually distinct from the
+      burgundy "active" highlight (= the project currently open in the builder).
     */
-    main {
-      max-width: 1200px;    /* Never stretch wider than 1200px */
-      margin: 36px auto;    /* Centre horizontally with space above/below */
-      padding: 0 24px;
-      display: grid;
-      grid-template-columns: 1fr 340px;
-      gap: 24px;
-      align-items: start;   /* Don't stretch columns to match each other's height */
+    .project-row.selected {
+      background: rgba(227,255,0,0.10);
+      box-shadow: inset 3px 0 0 var(--yellow);
+    }
+    .project-row.selected .project-row-name { color: var(--yellow); font-weight: 500; }
+
+    /* Selection count pill shown at the bottom of the sidebar when ≥1 selected */
+    .selection-bar {
+      padding: 10px 10px 12px;
+      flex-shrink: 0;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .selection-bar .sel-count { font-weight: 600; color: var(--yellow); }
+    .selection-clear-btn {
+      background: none; border: none;
+      color: rgba(255,255,255,0.35); font-size: 11px;
+      cursor: pointer; padding: 2px 4px; border-radius: 3px;
+      transition: color .15s; font-family: inherit;
+    }
+    .selection-clear-btn:hover { color: rgba(255,255,255,0.7); }
+
+    /* ═══════════════════════════════════════════════════════════
+       CONTENT AREA
+    ═══════════════════════════════════════════════════════════ */
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      min-width: 0;
     }
 
-    /* ─── CARDS ──────────────────────────────────────────────── */
-    /* White rounded boxes that contain sections of the UI */
+    /* ── EMPTY / WELCOME STATE ── */
+    .empty-screen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: var(--grey-mid);
+      text-align: center;
+      padding: 40px;
+    }
+    .empty-screen .big-icon { font-size: 52px; opacity: .4; }
+    .empty-screen h2 { font-size: 18px; font-weight: 600; color: var(--text-mid); }
+    .empty-screen p  { font-size: 13px; max-width: 340px; line-height: 1.6; }
+    .cta-btn {
+      margin-top: 6px;
+      padding: 11px 24px;
+      background: var(--burgundy);
+      border: none; border-radius: 8px;
+      color: var(--white);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .cta-btn:hover { opacity: .85; }
+
+    /* ── CLIENT OVERVIEW SCREEN ── */
+    #client-overview { display: none; flex-direction: column; gap: 22px; }
+
+    .overview-title-bar {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 4px;
+    }
+    .overview-name-input {
+      font-family: inherit; font-size: 22px; font-weight: 700;
+      color: var(--text-dark); background: transparent;
+      border: none; border-bottom: 2px solid transparent;
+      padding: 2px 4px; flex: 1; min-width: 0;
+      transition: border-color .2s;
+    }
+    .overview-name-input:focus { outline: none; border-bottom-color: var(--burgundy); }
+    .overview-name-hint { font-size: 11px; color: var(--grey-mid); white-space: nowrap; }
+
+    /* Summary strip at top of client overview */
+    .client-stats {
+      display: flex; gap: 14px; flex-wrap: wrap;
+    }
+    .stat-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px 20px;
+      flex: 1; min-width: 140px;
+    }
+    .stat-card .stat-label { font-size: 11px; font-weight: 600; color: var(--grey-mid); text-transform: uppercase; letter-spacing: .4px; }
+    .stat-card .stat-value { font-size: 22px; font-weight: 700; color: var(--text-dark); margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .stat-card .stat-value.highlight { color: var(--burgundy); }
+
+    /* Project cards in the client overview */
+    .overview-projects-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .overview-projects-header h3 { font-size: 14px; font-weight: 600; color: var(--text-dark); }
+
+    .project-card-grid { display: flex; flex-direction: column; gap: 10px; }
+
+    .project-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px 20px;
+      display: flex; align-items: center; gap: 16px;
+      transition: box-shadow .15s;
+      cursor: default;
+    }
+    .project-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
+
+    .project-card-icon { font-size: 22px; flex-shrink: 0; }
+
+    .project-card-info { flex: 1; min-width: 0; }
+    .project-card-name { font-size: 14px; font-weight: 600; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .project-card-meta { font-size: 12px; color: var(--grey-mid); margin-top: 3px; }
+
+    .project-card-total { font-size: 16px; font-weight: 700; color: var(--burgundy); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+    .project-card-open {
+      padding: 7px 14px;
+      background: var(--burgundy);
+      border: none; border-radius: 6px;
+      color: var(--white);
+      font-family: inherit; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: opacity .15s; flex-shrink: 0;
+    }
+    .project-card-open:hover { opacity: .85; }
+
+    .project-card-delete {
+      background: none; border: none;
+      color: var(--grey-mid); font-size: 16px;
+      cursor: pointer; padding: 4px; border-radius: 4px;
+      transition: color .15s; flex-shrink: 0;
+    }
+    .project-card-delete:hover { color: #cc3333; }
+
+    /* Empty client state (no projects yet) */
+    .no-projects-hint {
+      text-align: center; padding: 40px 20px;
+      color: var(--grey-mid); font-size: 13px;
+    }
+    .no-projects-hint span { display: block; font-size: 32px; margin-bottom: 10px; }
+
+    /* ── QUOTE BUILDER SCREEN ── */
+    #quote-builder { display: none; flex-direction: column; gap: 24px; }
+
+    /* Breadcrumb navigation above the quote */
+    .breadcrumb {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--grey-mid);
+      margin-bottom: -8px;
+    }
+    .breadcrumb-link {
+      color: var(--burgundy); cursor: pointer; font-weight: 500;
+      transition: opacity .15s;
+    }
+    .breadcrumb-link:hover { opacity: .7; }
+    .breadcrumb-sep { opacity: .5; }
+    .breadcrumb-current { color: var(--text-dark); font-weight: 600; }
+
+    /* Editable project name */
+    .project-title-bar { display: flex; align-items: center; gap: 12px; }
+    .project-name-input {
+      font-family: inherit; font-size: 20px; font-weight: 700;
+      color: var(--text-dark); background: transparent;
+      border: none; border-bottom: 2px solid transparent;
+      padding: 2px 4px; flex: 1; min-width: 0;
+      transition: border-color .2s;
+    }
+    .project-name-input:focus { outline: none; border-bottom-color: var(--burgundy); }
+    .project-name-hint { font-size: 11px; color: var(--grey-mid); white-space: nowrap; }
+
+    /* ═══════════════════════════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════════════════════════ */
     .card {
       background: var(--white);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      overflow: hidden; /* Clip child elements to the rounded corners */
+      overflow: hidden;
     }
-    /* Dark burgundy banner at the top of each card */
     .card-header {
       background: var(--burgundy);
       color: var(--white);
-      padding: 14px 20px;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: .5px;
-      text-transform: uppercase;
+      padding: 13px 20px;
+      font-size: 12px; font-weight: 600;
+      letter-spacing: .5px; text-transform: uppercase;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-header.hybrid-header { background: var(--teal); }
+    .card-header .header-badge {
+      background: rgba(255,255,255,0.2);
+      border-radius: 4px; padding: 2px 8px;
+      font-size: 11px; letter-spacing: .3px;
     }
     .card-body { padding: 20px; }
 
-    /* ─── FILTER BAR ─────────────────────────────────────────── */
-    /* Horizontal row of dropdown menus above the table */
-    .filter-bar {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap; /* Wrap onto the next line if the screen is too narrow */
-      margin-bottom: 20px;
-    }
-    /* Each label + dropdown pair */
+    /* ── FILTER BAR ── */
+    .filter-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
     .filter-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px; }
-    .filter-group label {
-      font-size: 11px; font-weight: 600;
-      color: var(--grey-mid);
-      text-transform: uppercase; letter-spacing: .5px;
-    }
+    .filter-group label { font-size: 11px; font-weight: 600; color: var(--grey-mid); text-transform: uppercase; letter-spacing: .5px; }
     .filter-group select {
-      border: 1.5px solid var(--grey-light);
-      border-radius: 6px;
-      padding: 8px 10px;
-      font-size: 13px;
-      font-family: inherit;
-      color: var(--text-dark);
-      background: var(--white);
-      cursor: pointer;
-      transition: border-color .2s; /* Smoothly animate the border colour change */
+      border: 1.5px solid var(--grey-light); border-radius: 6px;
+      padding: 8px 10px; font-size: 13px; font-family: inherit;
+      color: var(--text-dark); background: var(--white);
+      cursor: pointer; transition: border-color .2s;
     }
-    /* Highlight the dropdown with a burgundy border when focused */
     .filter-group select:focus { outline: none; border-color: var(--burgundy); }
+    .filter-group select.teal-focus:focus { border-color: var(--teal); }
 
-    /* ─── TABLE ──────────────────────────────────────────────── */
-    .table-wrap { overflow-x: auto; } /* Allows horizontal scrolling on small screens */
+    /* ── TABLE ── */
+    .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    /* Grey header row */
     thead tr { background: var(--grey-light); }
     thead th {
-      padding: 10px 12px;
-      text-align: left;
-      font-size: 11px; font-weight: 600;
-      color: var(--grey-mid);
-      text-transform: uppercase; letter-spacing: .4px;
-      white-space: nowrap; /* Don't let column headers wrap onto two lines */
+      padding: 10px 12px; text-align: left;
+      font-size: 11px; font-weight: 600; color: var(--grey-mid);
+      text-transform: uppercase; letter-spacing: .4px; white-space: nowrap;
     }
-    thead th.num { text-align: right; } /* Right-align numeric column headers */
-    /* Dividing lines between rows + hover highlight */
+    thead th.num { text-align: right; }
     tbody tr { border-bottom: 1px solid var(--grey-light); transition: background .15s; }
     tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: #fdf5f8; } /* Subtle pink tint on hover */
-    td { padding: 11px 12px; vertical-align: middle; }
-    td.num { text-align: right; font-variant-numeric: tabular-nums; } /* Tabular nums = digits always same width, so columns align */
+    tbody tr:hover { background: #fdf5f8; }
+    td { padding: 10px 12px; vertical-align: middle; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .hybrid-table tbody tr:hover { background: #f0f8fc; }
 
-    /* ─── BADGES ─────────────────────────────────────────────── */
-    /* Pill-shaped coloured labels (EC, VC, MASTER, Localization) */
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 20px; /* Very rounded → pill shape */
-      font-size: 11px; font-weight: 600;
-    }
+    /* ── BADGES ── */
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
     .badge-ec     { background: #fae3d6; color: #84344E; }
     .badge-vc     { background: #f6c7ad; color: #7a3010; }
     .badge-master { background: #e9e9ea; color: #555; }
     .badge-loc    { background: #c1e5f5; color: #1a6080; }
+    .badge-hybrid { background: #d4f0fa; color: #0d4d6b; }
 
-    /* ─── QUANTITY INPUTS ────────────────────────────────────── */
-    /* Small number fields in the "# ASINs" and "# Languages" columns */
+    /* ── INPUTS ── */
     .qty-input {
-      width: 72px;
-      border: 1.5px solid var(--grey-light);
-      border-radius: 6px;
-      padding: 5px 8px;
-      font-size: 13px;
-      font-family: inherit;
-      text-align: center;
-      color: var(--text-dark);
-      transition: border-color .2s;
+      width: 68px; border: 1.5px solid var(--grey-light); border-radius: 6px;
+      padding: 5px 6px; font-size: 13px; font-family: inherit;
+      text-align: center; color: var(--text-dark); transition: border-color .2s;
     }
-    /* Burgundy border + pink background when the user clicks into the field */
     .qty-input:focus { outline: none; border-color: var(--burgundy); background: #fdf5f8; }
 
-    .row-total { font-weight: 600; color: var(--burgundy); } /* Non-zero line total */
-    .row-zero  { color: var(--grey-mid); }                   /* Zero line total (shows "—") */
+    .row-total      { font-weight: 600; color: var(--burgundy); }
+    .row-zero       { color: var(--grey-mid); }
+    .row-total-teal { font-weight: 600; color: var(--teal); }
 
-    /* ─── SUMMARY PANEL (right column) ──────────────────────── */
-    .summary-panel { position: sticky; top: 24px; } /* Sticks to the top of the viewport while scrolling */
-    .sum-block { display: flex; flex-direction: column; gap: 14px; padding: 20px; }
-    .sum-line { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+    /* ── HYBRID ── */
+    .tier-range { font-size: 12px; color: var(--text-mid); }
+    .tier-range strong { color: var(--text-dark); font-weight: 600; }
+    td.radio-cell { width: 36px; text-align: center; }
+    input[type="radio"].tier-radio { accent-color: var(--teal); width: 15px; height: 15px; cursor: pointer; }
+    tbody tr.tier-selected { background: #e6f4fb !important; }
+    tbody tr.tier-selected td { color: var(--teal); }
+    tbody tr.tier-selected .tier-range strong { color: var(--teal); }
+
+    .langs-input {
+      width: 72px; border: 1.5px solid var(--grey-light); border-radius: 6px;
+      padding: 5px 6px; font-size: 13px; font-family: inherit;
+      text-align: center; color: var(--text-dark); transition: border-color .2s;
+    }
+    .langs-input:focus { outline: none; border-color: var(--teal); background: #f0f8fc; }
+
+    .hybrid-subsection { margin-bottom: 24px; }
+    .hybrid-subsection:last-child { margin-bottom: 0; }
+    .hybrid-subsection-title {
+      font-size: 11px; font-weight: 700; color: var(--teal);
+      text-transform: uppercase; letter-spacing: .5px;
+      margin-bottom: 12px; padding-bottom: 6px;
+      border-bottom: 2px solid var(--teal-light);
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .empty-table-state { text-align: center; padding: 32px 20px; color: var(--grey-mid); font-size: 13px; }
+    .empty-table-state span { display: block; font-size: 26px; margin-bottom: 8px; }
+    .info-note { font-size: 11px; color: var(--grey-mid); padding: 10px 20px; border-top: 1px solid var(--grey-light); }
+
+    /* ═══════════════════════════════════════════════════════════
+       RIGHT SUMMARY PANEL
+    ═══════════════════════════════════════════════════════════ */
+    .summary-panel {
+      width: 294px; flex-shrink: 0;
+      overflow-y: auto; padding: 28px 16px 28px 0;
+    }
+    .summary-panel-inner { position: sticky; top: 0; }
+
+    .sum-block { display: flex; flex-direction: column; gap: 11px; padding: 16px; }
+    .sum-line { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
     .sum-line .label { color: var(--text-mid); }
     .sum-line .value { font-weight: 600; font-variant-numeric: tabular-nums; }
-    .sum-divider { border: none; border-top: 1px solid var(--grey-light); margin: 4px 0; }
+    .sum-divider { border: none; border-top: 1px solid var(--grey-light); margin: 2px 0; }
+    .sum-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--grey-mid); }
+    .sum-hybrid-line .value { color: var(--teal); }
 
-    /* Dashed pink box for the 10% project management add-on line */
     .sum-addon {
-      background: #fdf5f8;
-      border: 1px dashed var(--blush);
-      border-radius: 8px;
-      padding: 12px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 13px;
+      background: #fdf5f8; border: 1px dashed var(--blush);
+      border-radius: 8px; padding: 10px 12px;
+      display: flex; justify-content: space-between; align-items: center; font-size: 12px;
     }
     .sum-addon .label { color: var(--burgundy); font-weight: 500; }
     .sum-addon .value { font-weight: 600; color: var(--burgundy); font-variant-numeric: tabular-nums; }
 
-    /* Dark burgundy TOTAL row at the bottom of the summary */
     .sum-total {
-      background: var(--burgundy);
-      border-radius: 8px;
-      padding: 16px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      background: var(--burgundy); border-radius: 8px;
+      padding: 13px 12px; display: flex; justify-content: space-between; align-items: center;
     }
-    .sum-total .label { color: var(--blush); font-size: 13px; font-weight: 500; }
-    .sum-total .value { color: var(--yellow); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .sum-total .label { color: var(--blush); font-size: 12px; font-weight: 500; }
+    .sum-total .value { color: var(--yellow); font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-    /* Yellow "Export to Excel" button */
     .export-btn {
-      width: 100%;
-      padding: 12px;
-      background: var(--yellow);
-      border: none;
-      border-radius: 6px;
-      font-family: inherit;
-      font-size: 13px; font-weight: 700;
-      color: var(--burgundy);
-      cursor: pointer;
-      transition: all .2s;
-      letter-spacing: .3px;
+      width: 100%; padding: 10px;
+      background: var(--yellow); border: none; border-radius: 6px;
+      font-family: inherit; font-size: 12px; font-weight: 700;
+      color: var(--burgundy); cursor: pointer; transition: all .2s;
     }
-    .export-btn:hover { background: #cce600; } /* Slightly darker yellow on hover */
+    .export-btn:hover { background: #cce600; }
 
-    /* Ghost "Reset" button */
     .reset-btn {
-      width: 100%;
-      padding: 10px;
-      background: transparent;
-      border: 1.5px solid var(--grey-light);
-      border-radius: 6px;
-      font-family: inherit;
-      font-size: 13px; font-weight: 500;
-      color: var(--grey-mid);
-      cursor: pointer;
-      transition: all .2s;
+      width: 100%; padding: 9px;
+      background: transparent; border: 1.5px solid var(--grey-light); border-radius: 6px;
+      font-family: inherit; font-size: 12px; font-weight: 500;
+      color: var(--grey-mid); cursor: pointer; transition: all .2s;
     }
     .reset-btn:hover { border-color: var(--burgundy); color: var(--burgundy); }
 
-    /* Message shown when no table rows match the active filters */
-    .empty-state {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--grey-mid);
-      font-size: 14px;
-    }
-    .empty-state span { display: block; font-size: 32px; margin-bottom: 10px; }
-
-    /* Small instructional footnote below the table */
-    .info-note {
-      font-size: 12px;
-      color: var(--grey-mid);
-      padding: 12px 20px;
-      border-top: 1px solid var(--grey-light);
-    }
+    @media (max-width: 1000px) { .summary-panel { width: 250px; } }
 
     /*
-      RESPONSIVE BREAKPOINT
-      On screens narrower than 760px (most phones):
-        - Switch from two columns to a single stacked column
-        - Remove sticky positioning from the summary panel
-        - Shrink header padding
+      Responsive behaviour:
+      Never hide the summary panel — instead, allow horizontal scrolling in the content area
+      so the right panel (incl. Estimates) remains accessible.
     */
-    @media (max-width: 760px) {
-      main { grid-template-columns: 1fr; }
-      .summary-panel { position: static; }
-      header { padding: 16px 20px; }
+    @media (max-width: 750px)  {
+      .sidebar { width: 210px; }
+      .content-area { overflow-x: auto; }
+      #quote-builder { min-width: 980px; }
+      .summary-panel { display: block; }
     }
   </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════════════
+<!-- ═══════════════════════════════════════════════════
      HEADER
-     The top bar: logo mark + title + subtitle
-═══════════════════════════════════════════════════════════ -->
+═══════════════════════════════════════════════════ -->
 <header>
   <div class="logo-mark">FR</div>
   <div>
@@ -300,191 +625,962 @@
   </div>
 </header>
 
-<!-- ═══════════════════════════════════════════════════════════
-     MAIN — two-column grid (table left, summary right)
-═══════════════════════════════════════════════════════════ -->
-<main>
+<!-- ═══════════════════════════════════════════════════
+     APP SHELL
+═══════════════════════════════════════════════════ -->
+<div class="app-shell">
 
-  <!-- LEFT COLUMN: filter bar + pricing table -->
-  <div>
-    <div class="card">
-      <div class="card-header">Configure Your Quote</div>
-      <div class="card-body">
+  <!-- ── SIDEBAR ────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <button class="btn-new-client" onclick="createClient()">
+        ＋ &nbsp;New Client
+      </button>
+    </div>
+    <!-- Two-level list rendered by JS -->
+    <div class="sidebar-scroll" id="sidebar-scroll"></div>
+    <!-- Selection bar at the bottom of sidebar — hidden when nothing selected -->
+    <div class="selection-bar" id="selection-bar" style="display:none;">
+      <span><span class="sel-count" id="sel-count">0</span> selected</span>
+      <button class="selection-clear-btn" onclick="clearSelection()">Clear</button>
+    </div>
+  </aside>
 
-        <!-- Filter dropdowns — JavaScript listens for changes and re-renders the table -->
-        <div class="filter-bar">
-          <div class="filter-group">
-            <label>EC or VC</label>
-            <select id="filter-ec-vc">
-              <option value="all">All</option>
-              <option value="EC">EC</option>
-              <option value="VC">VC</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>MASTER or Localization</label>
-            <select id="filter-master-loc">
-              <option value="all">All</option>
-              <option value="MASTER">MASTER</option>
-              <option value="Localization">Localization</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>Content Element</label>
-            <!-- This dropdown is populated dynamically by JavaScript
-                 so it always reflects the unique elements in the PRICING data -->
-            <select id="filter-element">
-              <option value="all">All</option>
-            </select>
-          </div>
-        </div>
+  <!-- ── CONTENT AREA ───────────────────────────────── -->
+  <div class="content-area" id="content-area">
 
-        <!-- The pricing table — <tbody> is filled in by JavaScript -->
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Account</th>
-                <th>Type</th>
-                <th>Element</th>
-                <th>Level</th>
-                <th class="num">Price / ASIN</th>
-                <th class="num"># ASINs</th>
-                <th class="num"># Languages</th>
-                <th class="num">Line Total</th>
-              </tr>
-            </thead>
-            <!-- JavaScript writes rows into this <tbody> -->
-            <tbody id="table-body"></tbody>
-          </table>
-          <!-- Shown only when all rows are filtered out; hidden otherwise -->
-          <div id="empty-state" class="empty-state" style="display:none;">
-            <span>🔍</span>No items match your filters.
-          </div>
-        </div>
+    <!-- 1. Welcome / nothing selected -->
+    <div class="empty-screen" id="welcome-screen">
+      <div class="big-icon">🏢</div>
+      <h2>No client selected</h2>
+      <p>Create a new client account to start managing quotes, or select an existing one from the sidebar.</p>
+      <button class="cta-btn" onclick="createClient()">＋ Create first client</button>
+    </div>
 
+    <!-- 2. Client overview (shown when a client is selected but no project open) -->
+    <div id="client-overview">
+      <div class="overview-title-bar">
+        <input class="overview-name-input" id="client-name-input"
+          type="text" placeholder="Client Name"
+          oninput="onClientNameChange()"/>
+        <span class="overview-name-hint">Click to rename</span>
       </div>
-      <!-- Hint text below the table -->
-      <div class="info-note">
-        💡 Enter <strong># ASINs</strong> and <strong># Languages</strong> for each row you need. Totals update instantly.
+
+      <!-- Stats strip -->
+      <div class="client-stats">
+        <div class="stat-card">
+          <div class="stat-label">Projects</div>
+          <div class="stat-value" id="ov-project-count">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Combined Total (incl. 10%)</div>
+          <div class="stat-value highlight" id="ov-combined-total">€ 0,00</div>
+        </div>
+      </div>
+
+      <!-- Project list -->
+      <div>
+        <div class="overview-projects-header">
+          <h3>Projects</h3>
+          <button class="cta-btn" style="padding:8px 16px;font-size:12px;"
+            onclick="createProject(activeClientId)">＋ New Project</button>
+        </div>
+        <div class="project-card-grid" id="ov-project-list"></div>
+      </div>
+    </div>
+
+    <!-- 3. Quote builder (shown when a project is open) -->
+    <div id="quote-builder">
+
+      <!-- Breadcrumb: Client › Project -->
+      <div class="breadcrumb">
+        <span class="breadcrumb-link" id="bc-client" onclick="openClientOverview()"></span>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-current" id="bc-project"></span>
+      </div>
+
+      <!-- Editable project name -->
+      <div class="project-title-bar">
+        <input class="project-name-input" id="project-name-input"
+          type="text" placeholder="Untitled Project"
+          oninput="onProjectNameChange()"/>
+        <span class="project-name-hint">Click to rename</span>
+      </div>
+
+      <!-- STANDARD CARD -->
+      <div class="card">
+        <div class="card-header">
+          Configure Your Quote <span class="header-badge">Standard</span>
+        </div>
+        <div class="card-body">
+          <div class="filter-bar">
+            <div class="filter-group">
+              <label>EC or VC</label>
+              <select id="filter-ec-vc">
+                <option value="all">All</option>
+                <option value="EC">EC</option>
+                <option value="VC">VC</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>MASTER or Localization</label>
+              <select id="filter-master-loc">
+                <option value="all">All</option>
+                <option value="MASTER">MASTER</option>
+                <option value="Localization">Localization</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Content Element</label>
+              <select id="filter-element"><option value="all">All</option></select>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Account</th><th>Type</th><th>Element</th><th>Level</th>
+                  <th class="num">Time / ASIN</th>
+                  <th class="num">Price / ASIN</th>
+                  <th class="num"># ASINs</th>
+                  <th class="num"># Languages</th>
+                  <th class="num">Line Total</th>
+                  <th class="num">Total Time</th>
+                </tr>
+              </thead>
+              <tbody id="table-body"></tbody>
+            </table>
+            <div id="empty-state" class="empty-table-state" style="display:none;">
+              <span>🔍</span>No items match your filters.
+            </div>
+          </div>
+        </div>
+        <div class="info-note">💡 Enter <strong># ASINs</strong> and <strong># Languages</strong> for each row. Totals update instantly.</div>
+      </div>
+
+      <!-- HYBRID CARD -->
+      <div class="card">
+        <div class="card-header hybrid-header">
+          Hybrid Pricing <span class="header-badge">EC · EC-Content · Flat-fee tiers</span>
+        </div>
+        <div class="card-body">
+          <div class="filter-bar" style="margin-bottom:24px;">
+            <div class="filter-group">
+              <label>MASTER or Localization</label>
+              <select id="hybrid-filter-type" class="teal-focus">
+                <option value="all">All</option>
+                <option value="MASTER">MASTER</option>
+                <option value="Localization">Localization</option>
+              </select>
+            </div>
+            <div class="filter-group" style="flex:2;"></div>
+          </div>
+
+          <div class="hybrid-subsection" id="hybrid-master-section">
+            <div class="hybrid-subsection-title">
+              <span class="badge badge-master">MASTER</span> EC-Content — select one ASIN tier
+            </div>
+            <div class="table-wrap">
+              <table class="hybrid-table">
+                <thead><tr>
+                  <th style="width:36px;"></th>
+                  <th>Account</th><th>Type</th><th>Element</th><th>Level</th>
+                  <th>ASIN Range</th>
+                  <th class="num">Flat Fee</th><th class="num"># Languages</th><th class="num">Line Total</th>
+                </tr></thead>
+                <tbody id="hybrid-master-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="hybrid-subsection" id="hybrid-loc-section">
+            <div class="hybrid-subsection-title">
+              <span class="badge badge-loc">Localization</span> EC-Content — select one ASIN tier
+            </div>
+            <div class="table-wrap">
+              <table class="hybrid-table">
+                <thead><tr>
+                  <th style="width:36px;"></th>
+                  <th>Account</th><th>Type</th><th>Element</th><th>Level</th>
+                  <th>ASIN Range</th>
+                  <th class="num">Flat Fee</th><th class="num"># Languages</th><th class="num">Line Total</th>
+                </tr></thead>
+                <tbody id="hybrid-loc-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="info-note">💡 Select <strong>one tier</strong> per section and enter <strong># Languages</strong>. Flat fee applies per language.</div>
+      </div>
+
+    </div><!-- end #quote-builder -->
+
+  </div><!-- end .content-area -->
+
+  <!-- ── SUMMARY PANEL (only visible in quote builder) ── -->
+  <div class="summary-panel" id="summary-panel" style="display:none;">
+    <div class="summary-panel-inner">
+      <div class="card">
+        <div class="card-header">Quote Summary</div>
+        <div class="sum-block">
+          <div class="sum-section-label">Standard</div>
+          <div class="sum-line">
+            <span class="label">Services Subtotal</span>
+            <span class="value" id="s-subtotal">€ 0,00</span>
+          </div>
+          <hr class="sum-divider"/>
+          <div class="sum-section-label">Estimates</div>
+          <div class="sum-line">
+            <span class="label">Time / ASIN</span>
+            <span class="value" id="t-per-asin">—</span>
+          </div>
+          <div class="sum-line">
+            <span class="label">Total Time</span>
+            <span class="value" id="t-total">—</span>
+          </div>
+          <hr class="sum-divider"/>
+          <div class="sum-section-label">Hybrid</div>
+          <div class="sum-line sum-hybrid-line">
+            <span class="label">MASTER Tier</span>
+            <span class="value" id="h-master-line">€ 0,00</span>
+          </div>
+          <div class="sum-line sum-hybrid-line">
+            <span class="label">Localization Tier</span>
+            <span class="value" id="h-loc-line">€ 0,00</span>
+          </div>
+          <div class="sum-line sum-hybrid-line">
+            <span class="label" style="font-weight:600;">Hybrid Subtotal</span>
+            <span class="value" id="h-subtotal">€ 0,00</span>
+          </div>
+          <hr class="sum-divider"/>
+          <div class="sum-addon">
+            <span class="label">Project Mgmt Add-on<br/><small style="font-weight:400;color:#a7a8a9">(10% of combined)</small></span>
+            <span class="value" id="s-addon">€ 0,00</span>
+          </div>
+          <div class="sum-total">
+            <span class="label">TOTAL</span>
+            <span class="value" id="s-total">€ 0,00</span>
+          </div>
+          <button class="export-btn" id="export-btn" onclick="exportToExcel()">⬇ Export 1 project</button>
+          <button class="reset-btn" onclick="resetAll()">↺ Reset all quantities</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- RIGHT COLUMN: sticky summary panel + legend -->
-  <div class="summary-panel">
+</div><!-- end .app-shell -->
 
-    <!-- Quote totals card -->
-    <div class="card">
-      <div class="card-header">Quote Summary</div>
-      <div class="sum-block">
-
-        <!-- Services subtotal (sum of all line totals) -->
-        <div class="sum-line">
-          <span class="label">Services Subtotal</span>
-          <span class="value" id="s-subtotal">€ 0,00</span>
-        </div>
-        <hr class="sum-divider"/>
-
-        <!-- 10% project management fee -->
-        <div class="sum-addon">
-          <span class="label">
-            Project Management Add-on<br/>
-            <small style="font-weight:400;color:#a7a8a9">(10% of subtotal)</small>
-          </span>
-          <span class="value" id="s-addon">€ 0,00</span>
-        </div>
-
-        <!-- Grand total = subtotal + add-on -->
-        <div class="sum-total">
-          <span class="label">TOTAL</span>
-          <span class="value" id="s-total">€ 0,00</span>
-        </div>
-
-        <!-- Calls exportToExcel() defined in the script below -->
-        <button class="export-btn" onclick="exportToExcel()">⬇ Export to Excel</button>
-
-        <!-- Calls resetAll() to zero out all quantities -->
-        <button class="reset-btn" onclick="resetAll()">↺ Reset all quantities</button>
-
-      </div>
-    </div>
-
-  </div><!-- end .summary-panel -->
-</main>
-
-<!-- External library: SheetJS — used to generate the .xlsx file on the client side
-     (no server needed; the file is created entirely in the browser) -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script>
-/*
-  ═══════════════════════════════════════════════════════════════
-  PRICING DATA
-  An array of objects — each object is one row in the table.
-  Properties:
-    ec_vc   → account type (EC = Seller Central, VC = Vendor Central)
-    type    → MASTER or Localization (MASTER = new content, Localization = translation)
-    element → the content deliverable (KWR, EC-Content, Gallery Images, Aplus)
-    level   → the variant level within that element
-    price   → cost per ASIN in euros
-  ═══════════════════════════════════════════════════════════════
-*/
+/* ═══════════════════════════════════════════════════════════════
+   PRICING CATALOGUE — shared across all clients & projects
+═══════════════════════════════════════════════════════════════ */
 const PRICING = [
-  { ec_vc:'EC', type:'MASTER',       element:'KWR',            level:'N/A',                price:230.21  },
-  { ec_vc:'EC', type:'MASTER',       element:'EC-Content',     level:'MAIN',               price:306.95  },
-  { ec_vc:'EC', type:'MASTER',       element:'EC-Content',     level:'Variant',            price:38.37   },
-  { ec_vc:'VC', type:'MASTER',       element:'Gallery Images', level:'Category Prototype', price:656.02  },
-  { ec_vc:'VC', type:'MASTER',       element:'Gallery Images', level:'MAIN',               price:230.21  },
-  { ec_vc:'VC', type:'MASTER',       element:'Gallery Images', level:'Variant',            price:38.37   },
-  { ec_vc:'VC', type:'MASTER',       element:'Aplus',          level:'Category Prototype', price:1457.83 },
-  { ec_vc:'VC', type:'MASTER',       element:'Aplus',          level:'MAIN',               price:230.21  },
-  { ec_vc:'EC', type:'Localization', element:'KWR',            level:'N/A',                price:230.21  },
-  { ec_vc:'EC', type:'Localization', element:'EC-Content',     level:'MAIN',               price:230.21  },
-  { ec_vc:'EC', type:'Localization', element:'EC-Content',     level:'Variant',            price:38.37   },
-  { ec_vc:'VC', type:'Localization', element:'Gallery Images', level:'MAIN',               price:153.47  },
-  { ec_vc:'VC', type:'Localization', element:'Gallery Images', level:'Variant',            price:38.37   },
-  { ec_vc:'VC', type:'Localization', element:'Aplus',          level:'MAIN',               price:191.85  },
-  { ec_vc:'VC', type:'Localization', element:'Aplus',          level:'Variant',            price:38.37   },
+  // NOTE: timePerAsin values are loaded from the BMA workbook at runtime.
+  // Until loaded, they default to 0 → the Estimates panel will show 0h.
+  { ec_vc:'EC', type:'MASTER',       element:'KWR',            level:'N/A',                price:230.21,  timePerAsin: 0 },
+  { ec_vc:'EC', type:'MASTER',       element:'EC-Content',     level:'MAIN',               price:306.95,  timePerAsin: 0 },
+  { ec_vc:'EC', type:'MASTER',       element:'EC-Content',     level:'Variant',            price:38.37,   timePerAsin: 0 },
+  { ec_vc:'VC', type:'MASTER',       element:'Gallery Images', level:'Category Prototype', price:656.02,  timePerAsin: 0 },
+  { ec_vc:'VC', type:'MASTER',       element:'Gallery Images', level:'MAIN',               price:230.21,  timePerAsin: 0 },
+  { ec_vc:'VC', type:'MASTER',       element:'Gallery Images', level:'Variant',            price:38.37,   timePerAsin: 0 },
+  { ec_vc:'VC', type:'MASTER',       element:'Aplus',          level:'Category Prototype', price:1457.83, timePerAsin: 0 },
+  { ec_vc:'VC', type:'MASTER',       element:'Aplus',          level:'MAIN',               price:230.21,  timePerAsin: 0 },
+  { ec_vc:'EC', type:'Localization', element:'KWR',            level:'N/A',                price:230.21,  timePerAsin: 0 },
+  { ec_vc:'EC', type:'Localization', element:'EC-Content',     level:'MAIN',               price:230.21,  timePerAsin: 0 },
+  { ec_vc:'EC', type:'Localization', element:'EC-Content',     level:'Variant',            price:38.37,   timePerAsin: 0 },
+  { ec_vc:'VC', type:'Localization', element:'Gallery Images', level:'MAIN',               price:153.47,  timePerAsin: 0 },
+  { ec_vc:'VC', type:'Localization', element:'Gallery Images', level:'Variant',            price:38.37,   timePerAsin: 0 },
+  { ec_vc:'VC', type:'Localization', element:'Aplus',          level:'MAIN',               price:191.85,  timePerAsin: 0 },
+  { ec_vc:'VC', type:'Localization', element:'Aplus',          level:'Variant',            price:38.37,   timePerAsin: 0 },
 ];
 
-/*
-  STATE
-  Mirrors the PRICING array but tracks only what the user has typed:
-    asins → number of ASINs entered for that row
-    langs → number of languages entered for that row
-  Initialised to 0 for every row. Persists across filter changes so values
-  aren't lost when the table re-renders.
-*/
-const state = PRICING.map(() => ({ asins: 0, langs: 0 }));
+// Load time-per-ASIN values from the latest BMA workbook (embedded below) once at startup.
+function loadTimeCatalogueFromBMA() {
+  // Hard-coded "Time per ASIN" values (HOURS) provided by the user.
+  // Mapping key: EC/VC + MASTER/Localization + Content Element + Content Level
+  const keyOf = (ec_vc, type, element, level) => [ec_vc, type, element, level].map(x => String(x||'').trim()).join('||');
+  const map = new Map([
+    [keyOf('EC','MASTER',       'KWR',            'N/A'),                3.0],
+    [keyOf('EC','MASTER',       'EC-Content',     'MAIN'),               4.0],
+    [keyOf('EC','MASTER',       'EC-Content',     'Variant'),            0.5],
+    [keyOf('VC','MASTER',       'Gallery Images', 'Category Prototype'), 6.0],
+    [keyOf('VC','MASTER',       'Gallery Images', 'MAIN'),               3.0],
+    [keyOf('VC','MASTER',       'Gallery Images', 'Variant'),            0.5],
+    [keyOf('VC','MASTER',       'Aplus',          'Category Prototype'), 12.0],
+    [keyOf('VC','MASTER',       'Aplus',          'MAIN'),               3.0],
+
+    [keyOf('EC','Localization', 'KWR',            'N/A'),                3.0],
+    [keyOf('EC','Localization', 'EC-Content',     'MAIN'),               3.0],
+    [keyOf('EC','Localization', 'EC-Content',     'Variant'),            0.5],
+    [keyOf('VC','Localization', 'Gallery Images', 'MAIN'),               2.0],
+    [keyOf('VC','Localization', 'Gallery Images', 'Variant'),            0.5],
+    [keyOf('VC','Localization', 'Aplus',          'MAIN'),               2.5],
+    [keyOf('VC','Localization', 'Aplus',          'Variant'),            0.5],
+  ]);
+
+  let applied = 0;
+  PRICING.forEach(p => {
+    const k = keyOf(p.ec_vc, p.type, p.element, p.level);
+    if (map.has(k)) {
+      p.timePerAsin = map.get(k);
+      applied++;
+    }
+  });
+
+  // If something doesn't match, fail loud in console so we can adjust keys.
+  if (applied !== PRICING.length) {
+    console.warn(`Time catalogue applied to ${applied}/${PRICING.length} PRICING rows. Check element/level strings for mismatches.`);
+  }
+
+  updateSummary();
+}
+
+
+function fmtHours(hours) {
+  const h = Number(hours) || 0;
+  if (h <= 0) return '0h';
+  const rounded = Math.round(h * 10) / 10; // 0.1h precision
+  return `${rounded}h`;
+}
+
+// Hybrid currently selects only a tier + languages. Until we add a hybrid #ASINs input,
+// we approximate the selected tier's ASIN count using the range minimum.
+function getHybridSelectedAsinCount(group) {
+  // HYBRID_STATE is defined later in the file, so we must not access it at parse time.
+  // This function is only called from updateSummary() after HYBRID_STATE exists.
+  if (typeof HYBRID_STATE === 'undefined') return 0;
+  const hs = HYBRID_STATE[group];
+  if (!hs || hs.selectedIdx < 0) return 0;
+  const row = group === 'master' ? HYBRID_MASTER[hs.selectedIdx] : HYBRID_LOC[hs.selectedIdx];
+  return Number(row.rangeMin) || 0;
+}
+
 
 /*
-  POPULATE THE "Content Element" FILTER DROPDOWN
-  Extract unique element names from PRICING using Set (which removes duplicates),
-  then create one <option> per element and append it to the <select>.
+  Time estimation:
+  - timePerAsin is in HOURS.
+  - We'll populate PRICING[*].timePerAsin and HYBRID_*[*].timePerAsin from the latest BMA workbook on load.
+  - Total time = timePerAsin × #ASINs × #Languages.
 */
-const elements = [...new Set(PRICING.map(r => r.element))];
-const elFilter = document.getElementById('filter-element');
-elements.forEach(e => {
-  const o = document.createElement('option'); // Create a new <option> element
-  o.value = e; o.textContent = e;
-  elFilter.appendChild(o); // Add it inside the <select>
-});
+
+const HYBRID_MASTER = [
+  { rangeMin:   51, rangeMax:  100, price: 1000, timePerAsin: 0 },
+  { rangeMin:  101, rangeMax:  200, price: 1500, timePerAsin: 0 },
+  { rangeMin:  201, rangeMax:  350, price: 2000, timePerAsin: 0 },
+  { rangeMin:  351, rangeMax:  500, price: 2500, timePerAsin: 0 },
+  { rangeMin:  501, rangeMax: 1000, price: 3000, timePerAsin: 0 },
+  { rangeMin: 1001, rangeMax: 2000, price: 3500, timePerAsin: 0 },
+  { rangeMin: 2001, rangeMax: 3000, price: 4500, timePerAsin: 0 },
+  { rangeMin: 3001, rangeMax: 4000, price: 5500, timePerAsin: 0 },
+  { rangeMin: 4001, rangeMax: 5000, price: 7000, timePerAsin: 0 },
+];
+
+const HYBRID_LOC = [
+  { rangeMin:   51, rangeMax:  100, price:  900, timePerAsin: 0 },
+  { rangeMin:  101, rangeMax:  200, price: 1350, timePerAsin: 0 },
+  { rangeMin:  201, rangeMax:  350, price: 1800, timePerAsin: 0 },
+  { rangeMin:  351, rangeMax:  500, price: 2250, timePerAsin: 0 },
+  { rangeMin:  501, rangeMax: 1000, price: 2700, timePerAsin: 0 },
+  { rangeMin: 1001, rangeMax: 2000, price: 3150, timePerAsin: 0 },
+  { rangeMin: 2001, rangeMax: 3000, price: 4050, timePerAsin: 0 },
+  { rangeMin: 3001, rangeMax: 4000, price: 4950, timePerAsin: 0 },
+  { rangeMin: 4001, rangeMax: 5000, price: 5850, timePerAsin: 0 },
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   DATA MODEL
+   ─────────────────────────────────────────────────────────────
+   clients[] → { id, name, expanded, projects[] }
+   projects[] → { id, name, state[], hybrid{} }
+
+   `state[]`  — one { asins, langs } per PRICING row
+   `hybrid`   — { master: { selectedIdx, langs }, loc: { selectedIdx, langs } }
+═══════════════════════════════════════════════════════════════ */
+let clients       = [];   // All client objects
+let activeClientId  = null; // Which client is in view (overview or quote)
+let activeProjectId = null; // Which project is open (null = showing client overview)
 
 /*
-  fmt(n) — NUMBER FORMATTER
-  Converts a number to a euro string in German locale format
-  e.g. 1234.5 → "€ 1.234,50"
-  (German format uses dots for thousands and commas for decimals)
+  MULTI-SELECTION STATE
+  ─────────────────────────────────────────────────────────────────
+  selectedProjectIds: Set of "clientId::projectId" keys for all
+    currently selected projects (for multi-sheet export).
+  lastClickedKey: the key of the last project the user plain-clicked,
+    used as the anchor for Shift+click range selection.
 */
-function fmt(n) {
-  return '€ ' + n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+let selectedProjectIds = new Set(); // Keys of selected projects
+let lastClickedKey     = null;      // Anchor for Shift+click range
+
+/* Generate a simple unique ID */
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+/* Returns a fresh zeroed state for a new project */
+function newProjectData(name = 'New Project') {
+  return {
+    id:     uid(),
+    name,
+    state:  PRICING.map(() => ({ asins: 0, langs: 0 })),
+    hybrid: {
+      master: { selectedIdx: -1, langs: 0 },
+      loc:    { selectedIdx: -1, langs: 0 },
+    },
+  };
+}
+
+/* ─── SELECTION HELPERS ──────────────────────────────────────── */
+
+/*
+  projectKey(clientId, projectId) — returns a unique string key for
+  a project, used in the selectedProjectIds Set.
+*/
+function projectKey(clientId, projectId) { return clientId + '::' + projectId; }
+
+/*
+  clearSelection() — empties the selection set and refreshes the UI.
+*/
+function clearSelection() {
+  selectedProjectIds.clear();
+  lastClickedKey = null;
+  renderSidebar();
+  updateExportButton();
 }
 
 /*
-  getFilters() — READ CURRENT FILTER VALUES
-  Returns the currently selected value from each of the three dropdowns.
+  updateExportButton() — updates the label and visibility of the
+  Export button based on how many projects are selected.
+  If 0 selected but a project is open, treats it as 1 selected.
 */
+function updateExportButton() {
+  const btn = document.getElementById('export-btn');
+  if (!btn) return;
+  const count = selectedProjectIds.size || (activeProjectId ? 1 : 0);
+  if (count === 0) {
+    btn.textContent = '⬇ Export to Excel';
+  } else if (count === 1) {
+    btn.textContent = '⬇ Export 1 project';
+  } else {
+    btn.textContent = `⬇ Export ${count} projects`;
+  }
+
+  // Also update the selection bar at the bottom of the sidebar
+  const bar   = document.getElementById('selection-bar');
+  const label = document.getElementById('sel-count');
+  if (bar && label) {
+    bar.style.display  = selectedProjectIds.size > 0 ? 'flex' : 'none';
+    label.textContent  = selectedProjectIds.size;
+  }
+}
+
+/*
+  handleProjectClick(clientId, projectId, event) — central handler for
+  all project-row clicks in the sidebar.
+
+  - Plain click       → open the project (as before) + set as only selection
+  - Ctrl/Cmd + click  → toggle this project in/out of the selection set
+                        without navigating away
+  - Shift + click     → range-select from lastClickedKey to this project
+                        (across all clients, in the order they appear in the sidebar)
+*/
+function handleProjectClick(clientId, projectId, event) {
+  const key = projectKey(clientId, projectId);
+
+  if (event.ctrlKey || event.metaKey) {
+    /*
+      Ctrl/Cmd+click: toggle selection without navigating.
+      The currently open project is not affected — the user stays where they are.
+    */
+    if (selectedProjectIds.has(key)) {
+      selectedProjectIds.delete(key);
+    } else {
+      selectedProjectIds.add(key);
+      lastClickedKey = key;
+    }
+    renderSidebar();
+    updateExportButton();
+
+  } else if (event.shiftKey && lastClickedKey) {
+    /*
+      Shift+click: range-select all projects between lastClickedKey and
+      this project, in the flat order they appear in the sidebar
+      (iterate clients in order, then projects within each client).
+    */
+    // Build a flat ordered list of all project keys
+    const allKeys = [];
+    clients.forEach(c => c.projects.forEach(p => allKeys.push(projectKey(c.id, p.id))));
+
+    const anchorIdx  = allKeys.indexOf(lastClickedKey);
+    const currentIdx = allKeys.indexOf(key);
+    if (anchorIdx === -1 || currentIdx === -1) return;
+
+    const lo = Math.min(anchorIdx, currentIdx);
+    const hi = Math.max(anchorIdx, currentIdx);
+    // Add every key in the range to the selection (don't clear existing)
+    for (let i = lo; i <= hi; i++) selectedProjectIds.add(allKeys[i]);
+
+    renderSidebar();
+    updateExportButton();
+
+  } else {
+    /*
+      Plain click — two sub-cases:
+      a) This project is the ONLY selected one → deselect it (toggle off),
+         which leaves the quote builder open but nothing highlighted.
+      b) Otherwise → open the project and reset selection to just this one.
+    */
+    const isOnlySelected = selectedProjectIds.size === 1 && selectedProjectIds.has(key);
+
+    if (isOnlySelected) {
+      // Deselect the single selected project — clear selection but don't navigate
+      selectedProjectIds.clear();
+      lastClickedKey = null;
+      renderSidebar();
+      updateExportButton();
+    } else {
+      selectedProjectIds.clear();
+      selectedProjectIds.add(key);
+      lastClickedKey = key;
+      openQuoteBuilder(clientId, projectId);
+      updateExportButton();
+    }
+  }
+}
+
+/* ─── CLICK OUTSIDE — clears selection ───────────────────────────
+   Fires on every mousedown on the document.
+   If the click lands outside a .project-row (i.e. on a client row,
+   the content area, summary panel, or anywhere else), the entire
+   selection is cleared.
+   We use mousedown (not click) so it fires before any button handlers.
+*/
+document.addEventListener('mousedown', e => {
+  // If the click is on or inside a project row, let handleProjectClick manage it
+  if (e.target.closest('.project-row')) return;
+  // Also don't clear when clicking the selection-bar "Clear" button itself
+  if (e.target.closest('.selection-bar')) return;
+  // Anything else → clear all selections
+  if (selectedProjectIds.size > 0) {
+    selectedProjectIds.clear();
+    lastClickedKey = null;
+    renderSidebar();
+    updateExportButton();
+  }
+});
+
+/* ─── KEYBOARD: Ctrl+A selects all projects ──────────────────── */
+/*
+  Listens globally. Only fires when the user isn't typing in a text field.
+  Ctrl+A (or Cmd+A on Mac) selects every project across all clients.
+*/
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement ? document.activeElement.tagName : '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return; // Don't intercept typing
+
+  if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+    e.preventDefault(); // Stop the browser's "select all text" default
+    // Add every project across all clients to the selection
+    clients.forEach(c => c.projects.forEach(p => {
+      selectedProjectIds.add(projectKey(c.id, p.id));
+    }));
+    lastClickedKey = null;
+    renderSidebar();
+    updateExportButton();
+  }
+
+  // Escape clears the selection
+  if (e.key === 'Escape') clearSelection();
+});
+
+/* ─── CLIENT CRUD ────────────────────────────────────────────── */
+
+/*
+  createClient() — adds a new client and immediately opens its overview.
+  The client starts expanded so the user can add projects right away.
+*/
+function createClient() {
+  const client = { id: uid(), name: 'New Client', expanded: true, projects: [] };
+  clients.unshift(client); // Newest first
+  openClientOverviewById(client.id);
+  renderSidebar();
+  // Auto-focus the name input
+  setTimeout(() => { const el = document.getElementById('client-name-input'); if (el) { el.focus(); el.select(); } }, 60);
+}
+
+/*
+  deleteClient() — removes a client and all its projects.
+  Prompts for confirmation first.
+*/
+function deleteClient(id, event) {
+  event.stopPropagation(); // Don't also trigger the client-row click
+  if (!confirm('Delete this client and all its projects? This cannot be undone.')) return;
+  clients = clients.filter(c => c.id !== id);
+  // If we deleted the active client, return to the welcome screen
+  if (activeClientId === id) {
+    activeClientId  = null;
+    activeProjectId = null;
+    showScreen('welcome');
+    renderSidebar();
+  } else {
+    renderSidebar();
+  }
+}
+
+/* ── Project CRUD ────────────────────────────────────────────── */
+
+/*
+  createProject(clientId) — adds a blank project to the given client
+  and opens it in the quote builder immediately.
+*/
+function createProject(clientId) {
+  const client = clients.find(c => c.id === clientId);
+  if (!client) return;
+  const proj = newProjectData();
+  client.projects.push(proj);
+  client.expanded = true; // Make sure the client group is expanded
+  openQuoteBuilder(clientId, proj.id);
+  renderSidebar();
+  // Auto-focus project name
+  setTimeout(() => { const el = document.getElementById('project-name-input'); if (el) { el.focus(); el.select(); } }, 60);
+}
+
+/*
+  deleteProject(clientId, projectId) — removes a project from a client.
+  If it was active, returns to the client overview.
+*/
+function deleteProject(clientId, projectId, event) {
+  if (event) event.stopPropagation();
+  if (!confirm('Delete this project? This cannot be undone.')) return;
+  const client = clients.find(c => c.id === clientId);
+  if (!client) return;
+  client.projects = client.projects.filter(p => p.id !== projectId);
+  // If we deleted the active project, go back to client overview
+  if (activeProjectId === projectId) {
+    openClientOverviewById(clientId);
+  } else {
+    renderOverview(); // Refresh project card list
+  }
+  renderSidebar();
+}
+
+/* ── Navigation ──────────────────────────────────────────────── */
+
+/*
+  openClientOverviewById(clientId) — switches to client overview screen.
+  Saves any open quote state first.
+*/
+function openClientOverviewById(clientId) {
+  saveQuoteState();               // Persist any pending inputs
+  activeClientId  = clientId;
+  activeProjectId = null;
+  showScreen('overview');
+  renderSidebar();
+  renderOverview();
+}
+
+/*
+  openClientOverview() — convenience wrapper used by the breadcrumb link.
+*/
+function openClientOverview() {
+  if (activeClientId) openClientOverviewById(activeClientId);
+}
+
+/*
+  openQuoteBuilder(clientId, projectId) — switches to the quote builder
+  for a specific project, loading its saved state into the UI.
+*/
+function openQuoteBuilder(clientId, projectId) {
+  saveQuoteState(); // Save the previously open project (if any)
+
+  activeClientId  = clientId;
+  activeProjectId = projectId;
+
+  /*
+    When a project is opened via plain click (from handleProjectClick or
+    from the client overview "Open →" button), ensure it is in the
+    selection set so the export button reflects it correctly.
+    We only reset the full selection if nothing else was already Ctrl-selected.
+  */
+  const key = projectKey(clientId, projectId);
+  if (!selectedProjectIds.has(key)) {
+    selectedProjectIds.clear();
+    selectedProjectIds.add(key);
+    lastClickedKey = key;
+  }
+
+  const client = clients.find(c => c.id === clientId);
+  const proj   = client && client.projects.find(p => p.id === projectId);
+  if (!proj) return;
+
+  showScreen('quote');
+  renderSidebar();
+  updateExportButton(); // Reflect the new single-project selection
+
+  // Load project data into the live state arrays
+  loadProjectIntoUI(proj);
+
+  // Update breadcrumb
+  document.getElementById('bc-client').textContent  = client.name;
+  document.getElementById('bc-project').textContent = proj.name;
+  document.getElementById('project-name-input').value = proj.name;
+
+  // Reset filters to "all" so everything is visible by default
+  document.getElementById('filter-ec-vc').value       = 'all';
+  document.getElementById('filter-master-loc').value  = 'all';
+  document.getElementById('filter-element').value     = 'all';
+  document.getElementById('hybrid-filter-type').value = 'all';
+
+  renderTable();
+  renderHybrid();
+}
+
+/*
+  toggleClientExpanded(clientId) — collapses or expands a client group
+  in the sidebar without changing the active screen.
+*/
+function toggleClientExpanded(clientId) {
+  const client = clients.find(c => c.id === clientId);
+  if (client) client.expanded = !client.expanded;
+  renderSidebar();
+}
+
+/* ── Screen switching ────────────────────────────────────────── */
+
+/*
+  showScreen(which) — hides all content screens and shows only the requested one.
+  'welcome'  → no client selected
+  'overview' → client overview with project cards
+  'quote'    → quote builder with tables
+*/
+function showScreen(which) {
+  document.getElementById('welcome-screen').style.display  = which === 'welcome'  ? 'flex' : 'none';
+  document.getElementById('client-overview').style.display = which === 'overview' ? 'flex' : 'none';
+  document.getElementById('quote-builder').style.display   = which === 'quote'    ? 'flex' : 'none';
+  document.getElementById('summary-panel').style.display   = which === 'quote'    ? ''     : 'none';
+}
+
+/* ─── SIDEBAR RENDERER ───────────────────────────────────────── */
+
+/*
+  renderSidebar() — re-draws the entire two-level client → project tree.
+  Each client row has a chevron (collapsible) and a delete button.
+  Each project row is indented beneath its client and shows a total badge.
+*/
+function renderSidebar() {
+  const container = document.getElementById('sidebar-scroll');
+  container.innerHTML = '';
+
+  if (clients.length === 0) {
+    container.innerHTML = `<div style="padding:16px 14px;font-size:12px;color:rgba(255,255,255,0.3);line-height:1.5;">No clients yet.<br/>Click "+ New Client" above.</div>`;
+    return;
+  }
+
+  clients.forEach(client => {
+    const isActiveClient  = client.id === activeClientId;
+    const clientTotal     = calcClientTotal(client);
+
+    // ── Client row ──
+    const clientRow = document.createElement('div');
+    clientRow.className = 'client-row' + (isActiveClient && !activeProjectId ? ' active' : '');
+    clientRow.innerHTML = `
+      <span class="client-chevron ${client.expanded ? 'open' : ''}">▶</span>
+      <span class="client-icon">🏢</span>
+      <span class="client-name">${escHtml(client.name)}</span>
+      <span class="client-count">${client.projects.length}</span>
+      <button class="client-delete-btn" title="Delete client"
+        onclick="deleteClient('${client.id}', event)">×</button>
+    `;
+    // Clicking the name area → open client overview; clicking chevron → toggle expand
+    clientRow.addEventListener('click', e => {
+      if (e.target.classList.contains('client-delete-btn')) return;
+      // If already on this client's overview, just toggle expand
+      if (isActiveClient && !activeProjectId) {
+        toggleClientExpanded(client.id);
+      } else {
+        openClientOverviewById(client.id);
+        client.expanded = true;
+        renderSidebar();
+      }
+    });
+    container.appendChild(clientRow);
+
+    // ── Project list (collapsible) ──
+    const projList = document.createElement('div');
+    projList.className = 'project-list' + (client.expanded ? ' open' : '');
+
+    // "+ New Project" button inside the list
+    const newProjBtn = document.createElement('button');
+    newProjBtn.className = 'btn-new-project';
+    newProjBtn.innerHTML = '＋ New Project';
+    newProjBtn.onclick = e => { e.stopPropagation(); createProject(client.id); };
+    projList.appendChild(newProjBtn);
+
+    client.projects.forEach(proj => {
+      const isActiveProj = proj.id === activeProjectId;
+      const isSelected   = selectedProjectIds.has(projectKey(client.id, proj.id));
+      const projTotal    = calcProjectTotal(proj);
+
+      const projRow = document.createElement('div');
+      // Apply both .active (open in builder) and .selected (in export selection) independently
+      const classes = ['project-row'];
+      if (isActiveProj) classes.push('active');
+      if (isSelected)   classes.push('selected');
+      projRow.className = classes.join(' ');
+
+      projRow.innerHTML = `
+        <span class="project-row-icon">${isSelected ? '✓' : '📄'}</span>
+        <span class="project-row-name">${escHtml(proj.name)}</span>
+        ${projTotal > 0 ? `<span class="project-row-total">${fmtShort(projTotal)}</span>` : ''}
+        <button class="project-delete-btn" title="Delete project"
+          onclick="deleteProject('${client.id}','${proj.id}',event)">×</button>
+      `;
+
+      /*
+        Route all project-row clicks through handleProjectClick() which
+        interprets Ctrl, Shift, and plain clicks appropriately.
+      */
+      projRow.addEventListener('click', e => {
+        if (e.target.classList.contains('project-delete-btn')) return;
+        handleProjectClick(client.id, proj.id, e);
+      });
+      projList.appendChild(projRow);
+    });
+
+    container.appendChild(projList);
+  });
+}
+
+/* ─── CLIENT OVERVIEW RENDERER ──────────────────────────────── */
+
+/*
+  renderOverview() — fills the client overview screen with:
+    - Editable client name (already bound via oninput)
+    - Stats (project count, combined total)
+    - A card per project with open/delete buttons
+*/
+function renderOverview() {
+  const client = clients.find(c => c.id === activeClientId);
+  if (!client) return;
+
+  document.getElementById('client-name-input').value = client.name;
+
+  // Stats
+  const combined = calcClientTotal(client);
+  document.getElementById('ov-project-count').textContent   = client.projects.length;
+  document.getElementById('ov-combined-total').textContent  = fmt(combined);
+
+  // Project cards
+  const grid = document.getElementById('ov-project-list');
+  grid.innerHTML = '';
+
+  if (client.projects.length === 0) {
+    grid.innerHTML = `<div class="no-projects-hint">
+      <span>📂</span>No projects yet. Click <strong>+ New Project</strong> to get started.
+    </div>`;
+    return;
+  }
+
+  client.projects.forEach(proj => {
+    const total    = calcProjectTotal(proj);
+    const activeLines = proj.state.filter(s => s.asins > 0 || s.langs > 0).length;
+    const hm = proj.hybrid.master, hl = proj.hybrid.loc;
+    const hybridActive = (hm.selectedIdx >= 0 && hm.langs > 0) || (hl.selectedIdx >= 0 && hl.langs > 0);
+    const metaParts = [];
+    if (activeLines)   metaParts.push(`${activeLines} standard line${activeLines > 1 ? 's' : ''}`);
+    if (hybridActive)  metaParts.push('hybrid tier');
+
+    const card = document.createElement('div');
+    card.className = 'project-card';
+    card.innerHTML = `
+      <div class="project-card-icon">📄</div>
+      <div class="project-card-info">
+        <div class="project-card-name">${escHtml(proj.name)}</div>
+        <div class="project-card-meta">${metaParts.length ? metaParts.join(' · ') : 'No quantities entered yet'}</div>
+      </div>
+      <div class="project-card-total">${total > 0 ? fmt(total) : '—'}</div>
+      <button class="project-card-open" onclick="openQuoteBuilder('${client.id}','${proj.id}')">Open →</button>
+      <button class="project-card-delete" title="Delete" onclick="deleteProject('${client.id}','${proj.id}')">🗑</button>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+/*
+  onClientNameChange() — updates the client name live as the user types.
+  Refreshes sidebar so the name stays in sync.
+*/
+function onClientNameChange() {
+  const client = clients.find(c => c.id === activeClientId);
+  if (!client) return;
+  client.name = document.getElementById('client-name-input').value || 'Untitled Client';
+  renderSidebar();
+}
+
+/* ─── QUOTE BUILDER — LIVE STATE ────────────────────────────── */
+
+/*
+  These two arrays hold the currently displayed project's values.
+  When switching projects, saveQuoteState() writes them back to the
+  project object, and loadProjectIntoUI() fills them from the new project.
+*/
+const PRICING_STATE = PRICING.map(() => ({ asins: 0, langs: 0 }));
+const HYBRID_STATE  = {
+  master: { selectedIdx: -1, langs: 0 },
+  loc:    { selectedIdx: -1, langs: 0 },
+};
+
+/*
+  saveQuoteState() — persists PRICING_STATE and HYBRID_STATE into
+  the currently active project object. Also saves the project name.
+  Safe to call even when no project is active.
+*/
+function saveQuoteState() {
+  if (!activeProjectId || !activeClientId) return;
+  const client = clients.find(c => c.id === activeClientId);
+  const proj   = client && client.projects.find(p => p.id === activeProjectId);
+  if (!proj) return;
+
+  proj.state  = PRICING_STATE.map(s => ({ ...s }));
+  proj.hybrid = {
+    master: { ...HYBRID_STATE.master },
+    loc:    { ...HYBRID_STATE.loc },
+  };
+  // Also capture any pending name change from the input field
+  const nameInput = document.getElementById('project-name-input');
+  if (nameInput) proj.name = nameInput.value.trim() || 'Untitled Project';
+}
+
+/*
+  loadProjectIntoUI(proj) — copies a project's stored state into the
+  live PRICING_STATE / HYBRID_STATE arrays so the tables render correctly.
+*/
+function loadProjectIntoUI(proj) {
+  proj.state.forEach((s, i) => { PRICING_STATE[i].asins = s.asins; PRICING_STATE[i].langs = s.langs; });
+  HYBRID_STATE.master = { ...proj.hybrid.master };
+  HYBRID_STATE.loc    = { ...proj.hybrid.loc };
+}
+
+/*
+  onProjectNameChange() — updates the project name and breadcrumb live.
+*/
+function onProjectNameChange() {
+  const client = clients.find(c => c.id === activeClientId);
+  const proj   = client && client.projects.find(p => p.id === activeProjectId);
+  if (!proj) return;
+  proj.name = document.getElementById('project-name-input').value || 'Untitled Project';
+  document.getElementById('bc-project').textContent = proj.name;
+  renderSidebar();
+}
+
+/* ─── STANDARD TABLE ─────────────────────────────────────────── */
+
+/* Populate the Content Element filter dropdown once on load */
+const elements = [...new Set(PRICING.map(r => r.element))];
+elements.forEach(e => {
+  const o = document.createElement('option');
+  o.value = e; o.textContent = e;
+  document.getElementById('filter-element').appendChild(o);
+});
+
 function getFilters() {
   return {
     ec_vc:   document.getElementById('filter-ec-vc').value,
@@ -493,233 +1589,721 @@ function getFilters() {
   };
 }
 
-/*
-  matches(row, filters) — FILTER TEST
-  Returns true if a PRICING row should be shown given the active filters.
-  A value of 'all' means "don't filter on this field".
-*/
-function matches(row, filters) {
-  if (filters.ec_vc   !== 'all' && row.ec_vc   !== filters.ec_vc)   return false;
-  if (filters.type    !== 'all' && row.type     !== filters.type)    return false;
-  if (filters.element !== 'all' && row.element  !== filters.element) return false;
+function matchesFilter(row, f) {
+  if (f.ec_vc   !== 'all' && row.ec_vc   !== f.ec_vc)   return false;
+  if (f.type    !== 'all' && row.type     !== f.type)    return false;
+  if (f.element !== 'all' && row.element  !== f.element) return false;
   return true;
 }
 
-/*
-  renderTable() — BUILD THE TABLE
-  Clears the <tbody> and re-draws it from scratch based on:
-    - The PRICING data
-    - The current filter selections
-    - The current state (user-entered quantities)
-  Called once on page load and again whenever a filter changes.
-*/
 function renderTable() {
   const filters = getFilters();
   const tbody   = document.getElementById('table-body');
   const empty   = document.getElementById('empty-state');
-  tbody.innerHTML = ''; // Wipe existing rows
-  let visible = 0;      // Count how many rows pass the filter
+  tbody.innerHTML = '';
+  let visible = 0;
 
   PRICING.forEach((row, idx) => {
-    if (!matches(row, filters)) return; // Skip rows that don't match
+    if (!matchesFilter(row, filters)) return;
     visible++;
 
-    // Pull the stored quantities for this row
-    const asins     = state[idx].asins;
-    const langs     = state[idx].langs;
-    // Line total = price per ASIN × number of ASINs × number of languages
-    const lineTotal = row.price * asins * langs;
-
-    // Build the badge HTML strings
-    const ecBadge   = `<span class="badge badge-${row.ec_vc.toLowerCase()}">${row.ec_vc}</span>`;
-    const typeBadge = row.type === 'MASTER'
+    const asins    = PRICING_STATE[idx].asins;
+    const langs    = PRICING_STATE[idx].langs;
+    const total    = row.price * asins * langs;
+    const ecBadge  = `<span class="badge badge-${row.ec_vc.toLowerCase()}">${row.ec_vc}</span>`;
+    const typBadge = row.type === 'MASTER'
       ? `<span class="badge badge-master">MASTER</span>`
       : `<span class="badge badge-loc">Localization</span>`;
 
-    // Choose styling for the line total cell
-    const totalClass = lineTotal > 0 ? 'row-total' : 'row-zero';
-    const totalStr   = lineTotal > 0 ? fmt(lineTotal) : '—'; // Show "—" when zero
-
-    // Create a <tr> element and inject all cell HTML into it
     const tr = document.createElement('tr');
+    const tpa      = Number(row.timePerAsin) || 0;
+    const timeTot  = tpa * asins * langs;
+
     tr.innerHTML = `
-      <td>${ecBadge}</td>
-      <td>${typeBadge}</td>
+      <td>${ecBadge}</td><td>${typBadge}</td>
       <td>${row.element}</td>
       <td style="color:var(--text-mid);font-size:12px;">${row.level}</td>
+      <td class="num" style="color:var(--text-mid);">${tpa > 0 ? fmtHours(tpa) : '—'}</td>
       <td class="num">${fmt(row.price)}</td>
-      <td class="num">
-        <input class="qty-input" type="number" min="0" value="${asins}"
-          data-idx="${idx}" data-field="asins" placeholder="0"/>
-      </td>
-      <td class="num">
-        <input class="qty-input" type="number" min="0" value="${langs}"
-          data-idx="${idx}" data-field="langs" placeholder="0"/>
-      </td>
-      <td class="num ${totalClass}">${totalStr}</td>
+      <td class="num"><input class="qty-input" type="number" min="0" value="${asins}"
+        data-idx="${idx}" data-field="asins" placeholder="0"/></td>
+      <td class="num"><input class="qty-input" type="number" min="0" value="${langs}"
+        data-idx="${idx}" data-field="langs" placeholder="0"/></td>
+      <td class="num ${total > 0 ? 'row-total' : 'row-zero'}">${total > 0 ? fmt(total) : '—'}</td>
+      <td class="num" style="color:var(--text-mid);">${timeTot > 0 ? fmtHours(timeTot) : '—'}</td>
     `;
-    tbody.appendChild(tr); // Add the row to the table
+    tbody.appendChild(tr);
   });
 
-  // Show/hide the "no results" message
   empty.style.display = visible === 0 ? 'block' : 'none';
 
-  /*
-    ATTACH INPUT LISTENERS TO QUANTITY FIELDS
-    We use the 'input' event (fires on every keystroke) rather than 'change'
-    (fires only when focus leaves) so totals update in real time.
-
-    data-idx   → which PRICING row this input belongs to
-    data-field → whether it's 'asins' or 'langs'
-  */
   tbody.querySelectorAll('.qty-input').forEach(input => {
     input.addEventListener('input', e => {
-      const idx   = parseInt(e.target.dataset.idx);   // Which row
-      const field = e.target.dataset.field;            // 'asins' or 'langs'
-      // Parse the value; treat empty/invalid as 0; enforce minimum of 0
+      const idx   = parseInt(e.target.dataset.idx);
+      const field = e.target.dataset.field;
       const val   = Math.max(0, parseInt(e.target.value) || 0);
-      state[idx][field] = val; // Save into state
 
-      updateSummary(); // Recalculate the totals panel
+      PRICING_STATE[idx][field] = val;
 
-      /*
-        Update only this row's "Line Total" cell — no full re-render.
-        Avoiding a full re-render is important because re-rendering would
-        destroy and recreate the <input> the user is typing into,
-        which would cause it to lose focus mid-typing.
-      */
-      const row       = e.target.closest('tr');        // The parent <tr>
-      const lastCell  = row.querySelector('td:last-child');
-      const s         = state[idx];
-      const lineTotal = PRICING[idx].price * s.asins * s.langs;
-      if (lineTotal > 0) {
-        lastCell.textContent = fmt(lineTotal);
-        lastCell.className   = 'num row-total';
-      } else {
-        lastCell.textContent = '—';
-        lastCell.className   = 'num row-zero';
-      }
+      // Also persist into the project object so totals stay live
+      const client = clients.find(c => c.id === activeClientId);
+      const proj   = client && client.projects.find(p => p.id === activeProjectId);
+      if (proj) proj.state[idx][field] = val;
+
+      updateSummary();
+      renderSidebar(); // Refresh sidebar total badge
+
+      // In-place cell update — no full re-render (avoids losing focus)
+      const tr   = e.target.closest('tr');
+      const s    = PRICING_STATE[idx];
+      const lineT = PRICING[idx].price * s.asins * s.langs;
+      const tpa   = Number(PRICING[idx].timePerAsin) || 0;
+      const timeT = tpa * s.asins * s.langs;
+
+      // Update Line Total cell (second-to-last) and Total Time cell (last)
+      const cells = tr.querySelectorAll('td');
+      const lineCell = cells[cells.length - 2];
+      const timeCell = cells[cells.length - 1];
+
+      lineCell.textContent = lineT > 0 ? fmt(lineT) : '—';
+      lineCell.className   = lineT > 0 ? 'num row-total' : 'num row-zero';
+
+      timeCell.textContent = timeT > 0 ? fmtHours(timeT) : '—';
+      timeCell.className   = 'num';
     });
   });
 
-  updateSummary(); // Ensure the summary panel is correct after every render
+  updateSummary();
 }
 
-/*
-  updateSummary() — RECALCULATE AND DISPLAY TOTALS
-  Iterates over every PRICING row (including hidden/filtered-out ones)
-  so that quantities entered on filtered rows are still counted.
-*/
+/* ─── HYBRID TABLE ───────────────────────────────────────────── */
+
+function renderHybrid() {
+  const tf = document.getElementById('hybrid-filter-type').value;
+  document.getElementById('hybrid-master-section').style.display = (tf === 'all' || tf === 'MASTER')       ? '' : 'none';
+  document.getElementById('hybrid-loc-section').style.display    = (tf === 'all' || tf === 'Localization') ? '' : 'none';
+
+  renderHybridGroup('master', HYBRID_MASTER, document.getElementById('hybrid-master-body'));
+  renderHybridGroup('loc',    HYBRID_LOC,    document.getElementById('hybrid-loc-body'));
+  updateSummary();
+}
+
+function renderHybridGroup(group, data, tbody) {
+  tbody.innerHTML = '';
+  const hs = HYBRID_STATE[group];
+
+  data.forEach((row, idx) => {
+    const isSel    = hs.selectedIdx === idx;
+    const lineT    = isSel ? row.price * hs.langs : 0;
+    const typBadge = group === 'master'
+      ? `<span class="badge badge-master">MASTER</span>`
+      : `<span class="badge badge-loc">Localization</span>`;
+
+    const tr = document.createElement('tr');
+    if (isSel) tr.classList.add('tier-selected');
+
+    const langsCell = isSel
+      ? `<input class="langs-input" type="number" min="0" value="${hs.langs}" data-group="${group}" placeholder="0"/>`
+      : `<span style="color:var(--grey-mid);font-size:12px;">—</span>`;
+
+    tr.innerHTML = `
+      <td class="radio-cell">
+        <input type="radio" class="tier-radio"
+          name="hybrid-tier-${group}" data-group="${group}" data-idx="${idx}"
+          ${isSel ? 'checked' : ''}/>
+      </td>
+      <td><span class="badge badge-ec">EC</span></td>
+      <td>${typBadge}</td>
+      <td>EC-Content</td>
+      <td><span class="badge badge-hybrid">Hybrid</span></td>
+      <td class="tier-range">
+        <strong>${fmtNum(row.rangeMin)}</strong> – <strong>${fmtNum(row.rangeMax)}</strong> ASINs
+      </td>
+      <td class="num">${fmt(row.price)}</td>
+      <td class="num">${langsCell}</td>
+      <td class="num ${lineT > 0 ? 'row-total-teal' : 'row-zero'}">${lineT > 0 ? fmt(lineT) : '—'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  /* Radio listeners with deselect support */
+  tbody.querySelectorAll('.tier-radio').forEach(radio => {
+
+    /*
+      DESELECT LOGIC:
+      mousedown fires before the browser toggles checked, so we capture
+      _wasChecked here. In the click handler, if _wasChecked is true, the
+      user clicked the already-selected tier → we uncheck it and clear state.
+    */
+    radio.addEventListener('mousedown', e => { e.target._wasChecked = e.target.checked; });
+
+    radio.addEventListener('click', e => {
+      const grp = e.target.dataset.group;
+      const idx = parseInt(e.target.dataset.idx);
+
+      if (e.target._wasChecked) {
+        // Deselect: user clicked the already-selected tier
+        e.target.checked = false;
+        HYBRID_STATE[grp].selectedIdx = -1;
+        HYBRID_STATE[grp].langs = 0;
+      } else {
+        // Select new tier (preserve langs value)
+        HYBRID_STATE[grp].selectedIdx = idx;
+      }
+
+      // Sync to the active project object
+      const client = clients.find(c => c.id === activeClientId);
+      const proj   = client && client.projects.find(p => p.id === activeProjectId);
+      if (proj) proj.hybrid[grp] = { ...HYBRID_STATE[grp] };
+
+      renderHybridGroup(grp, grp === 'master' ? HYBRID_MASTER : HYBRID_LOC, tbody);
+      updateSummary();
+      renderSidebar();
+    });
+  });
+
+  /* Languages input listener */
+  const langsInput = tbody.querySelector('.langs-input');
+  if (langsInput) {
+    langsInput.addEventListener('input', e => {
+      const grp = e.target.dataset.group;
+      const val = Math.max(0, parseInt(e.target.value) || 0);
+      HYBRID_STATE[grp].langs = val;
+
+      // Sync to project
+      const client = clients.find(c => c.id === activeClientId);
+      const proj   = client && client.projects.find(p => p.id === activeProjectId);
+      if (proj) proj.hybrid[grp].langs = val;
+
+      // In-place line total update
+      const tr       = e.target.closest('tr');
+      const lastCell = tr.querySelector('td:last-child');
+      const hs2      = HYBRID_STATE[grp];
+      const data2    = grp === 'master' ? HYBRID_MASTER : HYBRID_LOC;
+      const lineT    = hs2.selectedIdx >= 0 ? data2[hs2.selectedIdx].price * hs2.langs : 0;
+      lastCell.textContent = lineT > 0 ? fmt(lineT) : '—';
+      lastCell.className   = lineT > 0 ? 'num row-total-teal' : 'num row-zero';
+
+      updateSummary();
+      renderSidebar();
+    });
+  }
+}
+
+/* ─── SUMMARY ────────────────────────────────────────────────── */
+
 function updateSummary() {
-  // Array.reduce() accumulates a running sum across all rows
-  const subtotal = PRICING.reduce((sum, row, idx) => {
-    return sum + row.price * state[idx].asins * state[idx].langs;
-  }, 0); // Start the running total at 0
+  const stdSub = PRICING.reduce((sum, row, i) =>
+    sum + row.price * PRICING_STATE[i].asins * PRICING_STATE[i].langs, 0);
 
-  const addon = subtotal * 0.1;       // 10% project management fee
-  const total = subtotal + addon;     // Grand total
+  const hm = HYBRID_STATE.master;
+  const hl = HYBRID_STATE.loc;
+  const masterLine = hm.selectedIdx >= 0 ? HYBRID_MASTER[hm.selectedIdx].price * hm.langs : 0;
+  const locLine    = hl.selectedIdx >= 0 ? HYBRID_LOC[hl.selectedIdx].price    * hl.langs : 0;
+  const hybSub     = masterLine + locLine;
+  const combined   = stdSub + hybSub;
+  const addon      = combined * 0.1;
+  const total      = combined + addon;
 
-  // Write the formatted values into the summary panel
-  document.getElementById('s-subtotal').textContent = fmt(subtotal);
-  document.getElementById('s-addon').textContent    = fmt(addon);
-  document.getElementById('s-total').textContent    = fmt(total);
+  // ── Time estimates ──────────────────────────────────────────
+  // Total time = (sum over standard rows: timePerAsin × asins × langs)
+  //            + (hybrid master: timePerAsin × asinsInTier × langs)
+  //            + (hybrid loc:    timePerAsin × asinsInTier × langs)
+  const stdTime = PRICING.reduce((sum, row, i) => {
+    const tpa = Number(row.timePerAsin) || 0;
+    return sum + tpa * PRICING_STATE[i].asins * PRICING_STATE[i].langs;
+  }, 0);
+
+  const masterTime = hm.selectedIdx >= 0
+    ? (Number(HYBRID_MASTER[hm.selectedIdx].timePerAsin) || 0) * getHybridSelectedAsinCount('master') * hm.langs
+    : 0;
+  const locTime = hl.selectedIdx >= 0
+    ? (Number(HYBRID_LOC[hl.selectedIdx].timePerAsin) || 0) * getHybridSelectedAsinCount('loc') * hl.langs
+    : 0;
+
+  const totalTime = stdTime + masterTime + locTime;
+
+  // For display, also show an "effective" time/ASIN across all entered quantities
+  const totalUnits = PRICING.reduce((sum, _row, i) => sum + (PRICING_STATE[i].asins * PRICING_STATE[i].langs), 0)
+    + (hm.selectedIdx >= 0 ? getHybridSelectedAsinCount('master') * hm.langs : 0)
+    + (hl.selectedIdx >= 0 ? getHybridSelectedAsinCount('loc')    * hl.langs : 0);
+
+  const effTpa = totalUnits > 0 ? (totalTime / totalUnits) : 0;
+
+  const tPerAsinEl = document.getElementById('t-per-asin');
+  const tTotalEl   = document.getElementById('t-total');
+  if (tPerAsinEl) tPerAsinEl.textContent = totalUnits > 0 ? (fmtHours(effTpa) + ' / ASIN') : '—';
+  if (tTotalEl)   tTotalEl.textContent   = totalUnits > 0 ? fmtHours(totalTime) : '—';
+
+  document.getElementById('s-subtotal').textContent    = fmt(stdSub);
+  document.getElementById('h-master-line').textContent = fmt(masterLine);
+  document.getElementById('h-loc-line').textContent    = fmt(locLine);
+  document.getElementById('h-subtotal').textContent    = fmt(hybSub);
+  document.getElementById('s-addon').textContent       = fmt(addon);
+  document.getElementById('s-total').textContent       = fmt(total);
 }
 
-/*
-  resetAll() — CLEAR ALL QUANTITIES
-  Sets every row's asins and langs back to 0, then re-renders.
-*/
+/* ─── RESET ──────────────────────────────────────────────────── */
+
 function resetAll() {
-  state.forEach(s => { s.asins = 0; s.langs = 0; });
+  if (!activeProjectId) return;
+  PRICING_STATE.forEach(s => { s.asins = 0; s.langs = 0; });
+  HYBRID_STATE.master = { selectedIdx: -1, langs: 0 };
+  HYBRID_STATE.loc    = { selectedIdx: -1, langs: 0 };
+
+  // Sync to project object
+  const client = clients.find(c => c.id === activeClientId);
+  const proj   = client && client.projects.find(p => p.id === activeProjectId);
+  if (proj) {
+    proj.state  = PRICING_STATE.map(s => ({ ...s }));
+    proj.hybrid = { master: { ...HYBRID_STATE.master }, loc: { ...HYBRID_STATE.loc } };
+  }
+
   renderTable();
+  renderHybrid();
+  renderSidebar();
 }
 
+/* ─── EXPORT ─────────────────────────────────────────────────── */
+
 /*
-  exportToExcel() — GENERATE AND DOWNLOAD AN .XLSX FILE
-  Uses the SheetJS library (loaded via <script> above).
-  Only rows where the user has entered at least one quantity are included.
+  exportToExcel() — generates a .xlsx file.
+
+  SINGLE project (1 selected or none selected but one open):
+    → One sheet named "Quote", same format as before.
+
+  MULTIPLE projects (2+ in selectedProjectIds):
+    → One sheet per project (named after the project, max 31 chars),
+      preceded by a "Summary" sheet that lists all projects and totals.
+
+  The function always saves the current quote state first so nothing is lost.
 */
 function exportToExcel() {
-  // Today's date in YYYY-MM-DD format (used in the filename and the spreadsheet)
+  saveQuoteState(); // Flush any unsaved input before reading project data
+
   const today = new Date().toISOString().slice(0, 10);
+  const wb    = XLSX.utils.book_new();
 
-  // Merge each PRICING row with its state values, then keep only active rows
-  const activeRows = PRICING
-    .map((row, idx) => ({ ...row, ...state[idx] }))
-    .filter(r => r.asins > 0 || r.langs > 0);
+  // ── Export styling (xlsx-js-style) ───────────────────────────
+  const THEMES = [
+    { name: 'Tan',      primary: 'D2B48C', dark: 'A67C52', light: 'F3E7D6', accentText: '1A1A1A' },
+    { name: 'Lime',     primary: 'C8FF00', dark: '7AA300', light: 'F3FFD1', accentText: '1A1A1A' },
+    { name: 'Dark Red', primary: '7A1E2B', dark: '5E1621', light: 'F4D5DA', accentText: 'FFFFFF' },
+    { name: 'Grey',     primary: '6B7280', dark: '4B5563', light: 'E5E7EB', accentText: 'FFFFFF' },
+    { name: 'Lt Grey',  primary: 'E5E7EB', dark: '9CA3AF', light: 'F9FAFB', accentText: '1A1A1A' },
+  ];
 
-  // Guard: don't export an empty sheet
-  if (activeRows.length === 0) {
-    alert('No quantities entered yet. Fill in # ASINs and/or # Languages first.');
+  const STY = {
+    font: { name: 'Inter', sz: 11, color: { rgb: '111827' } },
+    header: theme => ({
+      font: { name: 'Inter', sz: 14, bold: true, color: { rgb: theme.accentText } },
+      fill: { patternType: 'solid', fgColor: { rgb: theme.primary } },
+      alignment: { vertical: 'center', horizontal: 'left' },
+    }),
+    section: theme => ({
+      font: { name: 'Inter', sz: 11, bold: true, color: { rgb: theme.accentText } },
+      fill: { patternType: 'solid', fgColor: { rgb: theme.dark } },
+      alignment: { vertical: 'center', horizontal: 'left' },
+    }),
+    tableHeader: {
+      font: { name: 'Inter', sz: 10, bold: true, color: { rgb: '111827' } },
+      fill: { patternType: 'solid', fgColor: { rgb: 'E5E7EB' } },
+      alignment: { vertical: 'center', horizontal: 'center', wrapText: true },
+      border: {
+        top:    { style: 'thin', color: { rgb: 'D1D5DB' } },
+        bottom: { style: 'thin', color: { rgb: 'D1D5DB' } },
+        left:   { style: 'thin', color: { rgb: 'D1D5DB' } },
+        right:  { style: 'thin', color: { rgb: 'D1D5DB' } },
+      },
+    },
+    zebra: isAlt => ({
+      fill: { patternType: 'solid', fgColor: { rgb: isAlt ? 'F9FAFB' : 'FFFFFF' } },
+      alignment: { vertical: 'center', horizontal: 'left' },
+      border: {
+        bottom: { style: 'thin', color: { rgb: 'E5E7EB' } },
+      },
+    }),
+    money: { numFmt: '€ #,##0.00' },
+    hours: { numFmt: '0.0"h"' },
+    totals: theme => ({
+      font: { name: 'Inter', sz: 11, bold: true, color: { rgb: theme.accentText } },
+      fill: { patternType: 'solid', fgColor: { rgb: theme.primary } },
+      alignment: { vertical: 'center', horizontal: 'right' },
+      border: {
+        top:    { style: 'thin', color: { rgb: 'D1D5DB' } },
+        bottom: { style: 'thin', color: { rgb: 'D1D5DB' } },
+      },
+    }),
+  };
+
+  function cell(ws, addr, v, s) {
+    ws[addr] = ws[addr] || { t: 's', v: '' };
+    ws[addr].v = v;
+    if (typeof v === 'number') ws[addr].t = 'n';
+    if (s) ws[addr].s = Object.assign({}, ws[addr].s || {}, s);
+  }
+
+  function applyZebra(ws, startRow, endRow, startCol, endCol) {
+    for (let r = startRow; r <= endRow; r++) {
+      const alt = (r - startRow) % 2 === 1;
+      for (let c = startCol; c <= endCol; c++) {
+        const a = XLSX.utils.encode_cell({ r: r-1, c: c-1 });
+        if (ws[a]) ws[a].s = Object.assign({}, ws[a].s || {}, STY.zebra(alt));
+      }
+    }
+  }
+
+  function styleRow(ws, rowIdx1, startCol, endCol, styleObj) {
+    for (let c = startCol; c <= endCol; c++) {
+      const a = XLSX.utils.encode_cell({ r: rowIdx1-1, c: c-1 });
+      if (ws[a]) ws[a].s = Object.assign({}, ws[a].s || {}, styleObj);
+    }
+  }
+
+  function setNumFmt(ws, startRow, endRow, colIdx1, fmt) {
+    for (let r = startRow; r <= endRow; r++) {
+      const a = XLSX.utils.encode_cell({ r: r-1, c: colIdx1-1 });
+      if (ws[a]) ws[a].z = fmt;
+    }
+  }
+
+  function styleProjectWorksheet(ws, theme) {
+    // Freeze panes: keep first 5 rows visible (title + metadata + headers)
+    ws['!freeze'] = { xSplit: 0, ySplit: 5 };
+
+    // Determine used range
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    const maxCol = range.e.c + 1;
+    const maxRow = range.e.r + 1;
+
+    // Title row (row 1)
+    styleRow(ws, 1, 1, maxCol, STY.header(theme));
+
+    // Section headers rows: row 4 (STANDARD), row after standard block + 2 (HYBRID)
+    // We find them by scanning column A for '── STANDARD ──' and '── HYBRID ──'
+    for (let r = 1; r <= maxRow; r++) {
+      const a = XLSX.utils.encode_cell({ r: r-1, c: 0 });
+      const v = ws[a] && ws[a].v;
+      if (v === '── STANDARD ──' || v === '── HYBRID ──') {
+        styleRow(ws, r, 1, maxCol, STY.section(theme));
+      }
+    }
+
+    // Table header rows: detect by the presence of 'EC or VC' in col A
+    for (let r = 1; r <= maxRow; r++) {
+      const a = XLSX.utils.encode_cell({ r: r-1, c: 0 });
+      const v = ws[a] && ws[a].v;
+      if (v === 'EC or VC' || v === 'Account') {
+        styleRow(ws, r, 1, maxCol, STY.tableHeader);
+      }
+    }
+
+    // Zebra for standard table body: from row after 'EC or VC' header until blank row
+    function zebraAfterHeader(headerLabel) {
+      let headerRow = null;
+      for (let r = 1; r <= maxRow; r++) {
+        const a = XLSX.utils.encode_cell({ r: r-1, c: 0 });
+        if ((ws[a] && ws[a].v) === headerLabel) { headerRow = r; break; }
+      }
+      if (!headerRow) return;
+      let start = headerRow + 1;
+      let end = start;
+      for (let r = start; r <= maxRow; r++) {
+        const a = XLSX.utils.encode_cell({ r: r-1, c: 0 });
+        const v = ws[a] && ws[a].v;
+        if (v === null || v === undefined || v === '') { end = r - 1; break; }
+        end = r;
+      }
+      if (end >= start) applyZebra(ws, start, end, 1, maxCol);
+    }
+    zebraAfterHeader('EC or VC');
+    zebraAfterHeader('Account');
+
+    // Number formats for standard columns (we know our standard header has 10 cols)
+    // Time/ASIN (col 5) and Total Time (col 10)
+    // Price (col 6) and Line Total (col 9)
+    // We'll apply by scanning the standard header row.
+    for (let r = 1; r <= maxRow; r++) {
+      const a = XLSX.utils.encode_cell({ r: r-1, c: 0 });
+      if ((ws[a] && ws[a].v) === 'EC or VC') {
+        // Find end of standard table
+        let start = r + 1, end = start;
+        for (let rr = start; rr <= maxRow; rr++) {
+          const aa = XLSX.utils.encode_cell({ r: rr-1, c: 0 });
+          const vv = ws[aa] && ws[aa].v;
+          if (vv === null || vv === undefined || vv === '') { end = rr - 1; break; }
+          end = rr;
+        }
+        if (end >= start) {
+          setNumFmt(ws, start, end, 5, STY.hours.numFmt);
+          setNumFmt(ws, start, end, 6, STY.money.numFmt);
+          setNumFmt(ws, start, end, 9, STY.money.numFmt);
+          setNumFmt(ws, start, end, 10, STY.hours.numFmt);
+        }
+        break;
+      }
+    }
+
+    // Totals block: style rows containing 'Standard Subtotal', 'Hybrid Subtotal', 'Combined Subtotal', 'PM Add-on (10%)', 'TOTAL'
+    for (let r = 1; r <= maxRow; r++) {
+      const a = XLSX.utils.encode_cell({ r: r-1, c: 7 }); // label column in our sheet (col 8)
+      const v = ws[a] && ws[a].v;
+      if (v === 'Standard Subtotal' || v === 'Hybrid Subtotal' || v === 'Combined Subtotal' || v === 'PM Add-on (10%)' || v === 'TOTAL') {
+        // style label col 8 and value col 9
+        const labelAddr = XLSX.utils.encode_cell({ r: r-1, c: 7 });
+        const valAddr   = XLSX.utils.encode_cell({ r: r-1, c: 8 });
+        if (ws[labelAddr]) ws[labelAddr].s = Object.assign({}, ws[labelAddr].s || {}, STY.totals(theme));
+        if (ws[valAddr])   ws[valAddr].s   = Object.assign({}, ws[valAddr].s   || {}, STY.totals(theme));
+        if (ws[valAddr])   ws[valAddr].z   = STY.money.numFmt;
+      }
+    }
+  }
+
+  function styleSummaryWorksheet(ws, theme) {
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    const maxCol = range.e.c + 1;
+    const maxRow = range.e.r + 1;
+
+    ws['!freeze'] = { xSplit: 0, ySplit: 3 };
+    styleRow(ws, 1, 1, maxCol, STY.header(theme));
+
+    // Table header is row 3
+    styleRow(ws, 3, 1, maxCol, STY.tableHeader);
+
+    // Zebra from row 4 to before blank or end
+    let start = 4, end = maxRow;
+    applyZebra(ws, start, end, 1, maxCol);
+
+    // Money formats for totals columns (4..7)
+    for (let r = 4; r <= maxRow; r++) {
+      for (let c = 4; c <= 7; c++) {
+        const a = XLSX.utils.encode_cell({ r: r-1, c: c-1 });
+        if (ws[a]) ws[a].z = STY.money.numFmt;
+      }
+    }
+  }
+
+  /*
+    Resolve which projects to export:
+    - If selectedProjectIds has entries, use those.
+    - Otherwise fall back to the single currently-open project.
+  */
+  let targets = []; // Array of { client, proj }
+
+  if (selectedProjectIds.size > 0) {
+    // Iterate all clients/projects in sidebar order, keeping only selected ones
+    clients.forEach(c => {
+      c.projects.forEach(p => {
+        if (selectedProjectIds.has(projectKey(c.id, p.id))) {
+          targets.push({ client: c, proj: p });
+        }
+      });
+    });
+  } else if (activeProjectId && activeClientId) {
+    const c = clients.find(x => x.id === activeClientId);
+    const p = c && c.projects.find(x => x.id === activeProjectId);
+    if (c && p) targets.push({ client: c, proj: p });
+  }
+
+  if (targets.length === 0) {
+    alert('No project selected. Open or select a project first.');
     return;
   }
 
-  // Recalculate totals for the export (only from active rows)
-  const subtotal = activeRows.reduce((s, r) => s + r.price * r.asins * r.langs, 0);
-  const addon    = subtotal * 0.1;
-  const total    = subtotal + addon;
+  /*
+    Helper: build the data rows for a single project and return them
+    along with the calculated totals.
+  */
+  function buildProjectData(client, proj) {
+    const stdRows = PRICING
+      .map((row, i) => ({ ...row, asins: proj.state[i].asins, langs: proj.state[i].langs }))
+      .filter(r => r.asins > 0 || r.langs > 0);
 
-  // Column headers for the spreadsheet
-  const headers = [
-    'EC or VC', 'MASTER or Localization', 'Content Element', 'Content Level',
-    'Price / ASIN (€)', '# ASINs', '# Languages', 'Line Total (€)'
-  ];
+    const hm = proj.hybrid.master, hl = proj.hybrid.loc;
+    const hybRows = [];
+    if (hm.selectedIdx >= 0 && hm.langs > 0) {
+      const t = HYBRID_MASTER[hm.selectedIdx];
+      hybRows.push({ type:'MASTER', rangeMin:t.rangeMin, rangeMax:t.rangeMax, price:t.price, langs:hm.langs });
+    }
+    if (hl.selectedIdx >= 0 && hl.langs > 0) {
+      const t = HYBRID_LOC[hl.selectedIdx];
+      hybRows.push({ type:'Localization', rangeMin:t.rangeMin, rangeMax:t.rangeMax, price:t.price, langs:hl.langs });
+    }
 
-  // One array per data row (SheetJS converts arrays-of-arrays into cells)
-  const dataRows = activeRows.map(r => [
-    r.ec_vc, r.type, r.element, r.level,
-    r.price, r.asins, r.langs,
-    r.price * r.asins * r.langs
-  ]);
+    const stdSub  = stdRows.reduce((s,r) => s + r.price * r.asins * r.langs, 0);
+    const hybSub  = hybRows.reduce((s,r) => s + r.price * r.langs, 0);
+    const combined = stdSub + hybSub;
+    const addon    = combined * 0.1;
+    const total    = combined + addon;
+
+    return { stdRows, hybRows, stdSub, hybSub, combined, addon, total };
+  }
 
   /*
-    Build the full sheet as an array-of-arrays (aoa).
-    Each inner array = one row; each element = one cell.
-    Empty strings create blank cells; empty arrays create blank rows.
+    Helper: build a worksheet (array-of-arrays) for one project.
   */
-  const wsData = [
-    ['Front Row – Pricing Quote', '', '', '', '', '', '', `Date: ${today}`], // Title row
-    [],                                                                        // Blank row
-    headers,                                                                   // Column headers
-    ...dataRows,                                                               // Data rows (spread = flatten one level)
-    [],                                                                        // Blank row before totals
-    ['', '', '', '', '', '', 'Services Subtotal',               subtotal],
-    ['', '', '', '', '', '', 'Project Management Add-on (10%)', addon],
-    ['', '', '', '', '', '', 'TOTAL',                           total],
-  ];
+  function buildProjectSheet(client, proj) {
+    const { stdRows, hybRows, stdSub, hybSub, combined, addon, total } = buildProjectData(client, proj);
 
-  // Create a new workbook and worksheet using SheetJS utilities
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
+    // Include time columns in the export (matching UI)
+    return [
+      ['Front Row – Pricing Quote','','','','','','','','','',`Date: ${today}`],
+      ['Client:', client.name, '', 'Project:', proj.name],
+      [],
+      ['── STANDARD ──'],
+      ['EC or VC','MASTER or Localization','Content Element','Content Level','Time / ASIN (h)','Price / ASIN (€)','# ASINs','# Languages','Line Total (€)','Total Time (h)'],
+      ...stdRows.map(r => {
+        const tpa = Number(r.timePerAsin) || 0;
+        const timeT = tpa * (r.asins||0) * (r.langs||0);
+        return [r.ec_vc, r.type, r.element, r.level, tpa, r.price, r.asins, r.langs, r.price*r.asins*r.langs, timeT];
+      }),
+      [],
+      ['── HYBRID ──'],
+      ['Account','MASTER or Localization','Element','Level','ASIN Range','Flat Fee (€)','# Languages','Line Total (€)'],
+      ...hybRows.map(r => ['EC', r.type, 'EC-Content', 'Hybrid', `${r.rangeMin}–${r.rangeMax}`, r.price, r.langs, r.price*r.langs]),
+      [],
+      ['','','','','','','','Standard Subtotal', stdSub],
+      ['','','','','','','','Hybrid Subtotal',   hybSub],
+      ['','','','','','','','Combined Subtotal', combined],
+      ['','','','','','','','PM Add-on (10%)',   addon],
+      ['','','','','','','','TOTAL',             total],
+    ];
+  }
 
-  // Set column widths (wch = width in characters)
-  ws['!cols'] = [
-    { wch:14 }, { wch:16 }, { wch:18 }, { wch:22 },
-    { wch:16 }, { wch:10 }, { wch:28 }, { wch:16 }
-  ];
+  const colWidths = [{wch:12},{wch:22},{wch:20},{wch:18},{wch:14},{wch:16},{wch:10},{wch:12},{wch:16},{wch:14}];
 
-  // Attach the worksheet to the workbook under the tab name "Quote"
-  XLSX.utils.book_append_sheet(wb, ws, 'Quote');
+  if (targets.length === 1) {
+    /*
+      ── SINGLE-PROJECT EXPORT ──
+      One sheet named "Quote" — same behaviour as before.
+    */
+    const { client, proj } = targets[0];
+    const wsData = buildProjectSheet(client, proj);
+    const ws     = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols']  = colWidths;
 
-  // Trigger a file download in the browser
-  XLSX.writeFile(wb, `FrontRow_Quote_${today}.xlsx`);
+    // Apply theme 0 for single-sheet export
+    const theme = THEMES[0];
+    styleProjectWorksheet(ws, theme);
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Quote');
+
+    const safe = s => s.replace(/[^a-zA-Z0-9_\-]/g,'_').slice(0,30);
+    XLSX.writeFile(wb, `FrontRow_${safe(client.name)}_${safe(proj.name)}_${today}.xlsx`);
+
+  } else {
+    /*
+      ── MULTI-PROJECT EXPORT ──
+      Sheet 1: Summary — one row per project with name, client, and grand total.
+      Sheet 2+: One sheet per project, named after the project (max 31 chars,
+                sanitised, deduplicated with a counter suffix if needed).
+    */
+
+    // Build Summary sheet
+    const summaryRows = [
+      ['Front Row – Multi-Project Export','','','','Date:', today],
+      [],
+      ['#', 'Client', 'Project', 'Std Subtotal (€)', 'Hybrid Subtotal (€)', 'PM Add-on (€)', 'TOTAL (€)'],
+    ];
+    let grandTotal = 0;
+    targets.forEach(({ client, proj }, i) => {
+      const d = buildProjectData(client, proj);
+      grandTotal += d.total;
+      summaryRows.push([i+1, client.name, proj.name, d.stdSub, d.hybSub, d.addon, d.total]);
+    });
+    summaryRows.push([], ['','','Grand Total','','','', grandTotal]);
+
+    const summaryWs   = XLSX.utils.aoa_to_sheet(summaryRows);
+    summaryWs['!cols'] = [{wch:4},{wch:24},{wch:28},{wch:18},{wch:18},{wch:14},{wch:14}];
+    // Style the summary with theme 0
+    styleSummaryWorksheet(summaryWs, THEMES[0]);
+    XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+
+    // Build one sheet per project — deduplicate sheet names
+    const usedNames = new Set(['Summary']);
+    let sheetIdx = 0;
+    targets.forEach(({ client, proj }) => {
+      const wsData = buildProjectSheet(client, proj);
+      const ws     = XLSX.utils.aoa_to_sheet(wsData);
+      ws['!cols']  = colWidths;
+
+      // Apply per-sheet theme: nth sheet uses nth color (mod 5)
+      const theme = THEMES[sheetIdx % THEMES.length];
+      styleProjectWorksheet(ws, theme);
+      sheetIdx++;
+
+      // Sanitise and truncate the project name for use as a sheet tab name
+      // Excel limits sheet names to 31 characters
+      let base = proj.name.replace(/[\\\/*?\[\]:]/g, '').trim().slice(0, 28) || 'Project';
+      let name = base, counter = 2;
+      while (usedNames.has(name)) { name = base.slice(0, 25) + ' ' + counter++; }
+      usedNames.add(name);
+
+      XLSX.utils.book_append_sheet(wb, ws, name);
+    });
+
+
+    XLSX.writeFile(wb, `FrontRow_MultiExport_${today}.xlsx`);
+  }
 }
 
-/*
-  FILTER CHANGE LISTENERS
-  Whenever the user changes any dropdown, re-render the table.
-  The forEach loops over all three filter IDs at once.
-*/
-['filter-ec-vc', 'filter-master-loc', 'filter-element'].forEach(id => {
+/* ─── CALC HELPERS ───────────────────────────────────────────── */
+
+/* Grand total for a single project object (incl. 10% PM add-on) */
+function calcProjectTotal(proj) {
+  const std = PRICING.reduce((s, row, i) => s + row.price * proj.state[i].asins * proj.state[i].langs, 0);
+  const hm  = proj.hybrid.master, hl = proj.hybrid.loc;
+  const hyb = (hm.selectedIdx >= 0 ? HYBRID_MASTER[hm.selectedIdx].price * hm.langs : 0)
+            + (hl.selectedIdx >= 0 ? HYBRID_LOC[hl.selectedIdx].price    * hl.langs : 0);
+  return (std + hyb) * 1.1;
+}
+
+/* Sum of all project totals for a client */
+function calcClientTotal(client) {
+  return client.projects.reduce((s, p) => s + calcProjectTotal(p), 0);
+}
+
+/* Compact format for sidebar badge, e.g. "€3.2k" */
+function fmtShort(n) {
+  return n >= 1000 ? '€' + (n/1000).toFixed(1) + 'k' : '€' + Math.round(n);
+}
+
+/* Euro formatter — German locale, e.g. "€ 1.234,56" */
+function fmt(n) {
+  return '€ ' + n.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+
+/* Number formatter for ASIN ranges, e.g. 1000 → "1.000" */
+function fmtNum(n) { return n.toLocaleString('de-DE'); }
+
+/* HTML escape to prevent injection from user-typed names */
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ─── FILTER LISTENERS ───────────────────────────────────────── */
+['filter-ec-vc','filter-master-loc','filter-element'].forEach(id => {
   document.getElementById(id).addEventListener('change', renderTable);
 });
+document.getElementById('hybrid-filter-type').addEventListener('change', renderHybrid);
 
+/* ─── INIT ───────────────────────────────────────────────────── */
 /*
-  INITIALISE
-  Render the table once when the page first loads.
+  On first load: show the welcome screen with no client selected.
+  Seed one example client so the UI isn't completely empty.
 */
-renderTable();
-
+(function init() {
+  // Pre-seed with "Bosch Mobility Aftermarket" as the first client
+  const bosch = { id: uid(), name: 'Bosch Mobility Aftermarket', expanded: true, projects: [] };
+  clients.push(bosch);
+  renderSidebar();
+  showScreen('welcome');
+  // Open the client overview immediately so it doesn't feel empty
+  openClientOverviewById(bosch.id);
+  updateExportButton();
+  // Load hard-coded time-per-ASIN catalogue
+  loadTimeCatalogueFromBMA();
+})();
 </script>
 </body>
 </html>
