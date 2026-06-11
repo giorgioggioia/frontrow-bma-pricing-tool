@@ -581,6 +581,33 @@
     .sum-total .label { color: var(--blush); font-size: 12px; font-weight: 500; }
     .sum-total .value { color: var(--yellow); font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
+    /* ── Save status + backup footer at the bottom of the sidebar ── */
+    .save-footer {
+      padding: 10px 12px;
+      border-top: 1px solid rgba(255,255,255,0.12);
+      display: flex; flex-direction: column; gap: 8px;
+      flex-shrink: 0;
+    }
+    .save-status {
+      font-size: 11px;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.4;
+    }
+    .save-status.ok    { color: #9fdc8a; }
+    .save-status.error { color: #ff9090; font-weight: 600; }
+    .save-footer-btns { display: flex; gap: 6px; }
+    .backup-btn {
+      flex: 1;
+      font-size: 11px;
+      padding: 5px 6px;
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 5px;
+      background: transparent;
+      color: rgba(255,255,255,0.8);
+      cursor: pointer;
+    }
+    .backup-btn:hover { background: rgba(255,255,255,0.1); }
+
     .export-btn {
       width: 100%; padding: 10px;
       background: var(--yellow); border: none; border-radius: 6px;
@@ -643,6 +670,15 @@
     <div class="selection-bar" id="selection-bar" style="display:none;">
       <span><span class="sel-count" id="sel-count">0</span> selected</span>
       <button class="selection-clear-btn" onclick="clearSelection()">Clear</button>
+    </div>
+    <!-- Save status + manual backup -->
+    <div class="save-footer">
+      <div class="save-status" id="save-status">…</div>
+      <div class="save-footer-btns">
+        <button class="backup-btn" onclick="exportBackup()" title="Download all data as a JSON backup file">⬇ Backup</button>
+        <button class="backup-btn" onclick="document.getElementById('import-backup-input').click()" title="Restore data from a backup file">⬆ Restore</button>
+      </div>
+      <input type="file" id="import-backup-input" accept=".json,application/json" style="display:none" onchange="importBackup(event)" />
     </div>
   </aside>
 
@@ -1262,11 +1298,13 @@ function deleteProject(clientId, projectId, event) {
   client.projects = client.projects.filter(p => p.id !== projectId);
   // If we deleted the active project, go back to client overview
   if (activeProjectId === projectId) {
+    activeProjectId = null; // Prevent saveQuoteState from resurrecting it
     openClientOverviewById(clientId);
   } else {
     renderOverview(); // Refresh project card list
   }
   renderSidebar();
+  scheduleSave(); // Persist the deletion immediately
 }
 
 /* ── Navigation ──────────────────────────────────────────────── */
@@ -1348,6 +1386,7 @@ function toggleClientExpanded(clientId) {
   const client = clients.find(c => c.id === clientId);
   if (client) client.expanded = !client.expanded;
   renderSidebar();
+  scheduleSave();
 }
 
 /* ── Screen switching ────────────────────────────────────────── */
@@ -1540,8 +1579,17 @@ const HYBRID_STATE  = {
   saveQuoteState() — persists PRICING_STATE and HYBRID_STATE into
   the currently active project object. Also saves the project name.
   Safe to call even when no project is active.
+
+  _quoteUiLoaded guards against a destructive edge case: on startup,
+  activeProjectId is restored from storage BEFORE the project's values
+  are loaded into the live UI arrays. Without this guard, the first
+  saveQuoteState() call would overwrite the restored project with the
+  zeros still sitting in PRICING_STATE — wiping the project the user
+  last worked on, every single time the page was reopened.
 */
+let _quoteUiLoaded = false;
 function saveQuoteState() {
+  if (!_quoteUiLoaded) return;
   if (!activeProjectId || !activeClientId) return;
   const client = clients.find(c => c.id === activeClientId);
   const proj   = client && client.projects.find(p => p.id === activeProjectId);
@@ -1565,9 +1613,17 @@ function saveQuoteState() {
   live PRICING_STATE / HYBRID_STATE arrays so the tables render correctly.
 */
 function loadProjectIntoUI(proj) {
-  proj.state.forEach((s, i) => { PRICING_STATE[i].asins = s.asins; PRICING_STATE[i].langs = s.langs; });
+  // Iterate over PRICING_STATE (always full length), not proj.state —
+  // this guarantees every row is reset even if the saved project has
+  // fewer rows, so nothing leaks over from the previously open project.
+  PRICING_STATE.forEach((s, i) => {
+    const src = (proj.state && proj.state[i]) || { asins: 0, langs: 0 };
+    s.asins = Number(src.asins) || 0;
+    s.langs = Number(src.langs) || 0;
+  });
   HYBRID_STATE.master = { ...proj.hybrid.master };
   HYBRID_STATE.loc    = { ...proj.hybrid.loc };
+  _quoteUiLoaded = true; // From now on, saveQuoteState may write back
 }
 
 /*
@@ -1657,10 +1713,15 @@ function renderTable() {
 
       PRICING_STATE[idx][field] = val;
 
-      // Also persist into the project object so totals stay live
+      // Also persist into the project object so totals stay live.
+      // Guard against short/old state arrays so this can never throw.
       const client = clients.find(c => c.id === activeClientId);
       const proj   = client && client.projects.find(p => p.id === activeProjectId);
-      if (proj) proj.state[idx][field] = val;
+      if (proj) {
+        if (!Array.isArray(proj.state)) proj.state = PRICING.map(() => ({ asins: 0, langs: 0 }));
+        if (!proj.state[idx]) proj.state[idx] = { asins: 0, langs: 0 };
+        proj.state[idx][field] = val;
+      }
 
       updateSummary();
       renderSidebar(); // Refresh sidebar total badge
@@ -1997,16 +2058,34 @@ function exportToExcel() {
     const maxCol = range.e.c + 1;
     const maxRow = range.e.r + 1;
 
-    // Title row (row 1)
-    styleRow(ws, 1, 1, maxCol, STY.header(theme));
+    ws['!merges'] = ws['!merges'] || [];
+    ws['!rows']   = ws['!rows']   || [];
 
-    // Section headers rows: row 4 (STANDARD), row after standard block + 2 (HYBRID)
-    // We find them by scanning column A for '── STANDARD ──' and '── HYBRID ──'
+    // ── Title bar (row 1): merge A1:G1 for the title, H1:J1 for the date ──
+    ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } });
+    ws['!merges'].push({ s: { r: 0, c: 7 }, e: { r: 0, c: maxCol - 1 } });
+    styleRow(ws, 1, 1, maxCol, STY.header(theme));
+    // Right-align the date inside its merged block
+    const dateAddr = XLSX.utils.encode_cell({ r: 0, c: 7 });
+    if (ws[dateAddr]) ws[dateAddr].s = Object.assign({}, ws[dateAddr].s || {}, {
+      alignment: { vertical: 'center', horizontal: 'right' },
+      font: { name: 'Inter', sz: 11, bold: false, color: { rgb: theme.accentText } },
+    });
+    ws['!rows'][0] = { hpt: 30 };
+
+    // ── Metadata row (row 2): bold labels ──
+    const boldLabel = { font: { name: 'Inter', sz: 11, bold: true, color: { rgb: '111827' } } };
+    ['A2', 'D2'].forEach(a => { if (ws[a]) ws[a].s = Object.assign({}, ws[a].s || {}, boldLabel); });
+    ws['!rows'][1] = { hpt: 18 };
+
+    // ── Section banners: merge across the full width, taller rows ──
     for (let r = 1; r <= maxRow; r++) {
       const a = XLSX.utils.encode_cell({ r: r-1, c: 0 });
       const v = ws[a] && ws[a].v;
-      if (v === '── STANDARD ──' || v === '── HYBRID ──') {
+      if (v === 'STANDARD SERVICES' || v === 'HYBRID PACKAGES') {
+        ws['!merges'].push({ s: { r: r-1, c: 0 }, e: { r: r-1, c: maxCol - 1 } });
         styleRow(ws, r, 1, maxCol, STY.section(theme));
+        ws['!rows'][r-1] = { hpt: 22 };
       }
     }
 
@@ -2016,6 +2095,7 @@ function exportToExcel() {
       const v = ws[a] && ws[a].v;
       if (v === 'EC or VC' || v === 'Account') {
         styleRow(ws, r, 1, maxCol, STY.tableHeader);
+        ws['!rows'][r-1] = { hpt: 26 };
       }
     }
 
@@ -2065,6 +2145,25 @@ function exportToExcel() {
       }
     }
 
+    // Number formats for the hybrid table: Flat Fee (col 6) and Line Total (col 8)
+    for (let r = 1; r <= maxRow; r++) {
+      const a = XLSX.utils.encode_cell({ r: r-1, c: 0 });
+      if ((ws[a] && ws[a].v) === 'Account') {
+        let start = r + 1, end = start;
+        for (let rr = start; rr <= maxRow; rr++) {
+          const aa = XLSX.utils.encode_cell({ r: rr-1, c: 0 });
+          const vv = ws[aa] && ws[aa].v;
+          if (vv === null || vv === undefined || vv === '') { end = rr - 1; break; }
+          end = rr;
+        }
+        if (end >= start) {
+          setNumFmt(ws, start, end, 6, STY.money.numFmt);
+          setNumFmt(ws, start, end, 8, STY.money.numFmt);
+        }
+        break;
+      }
+    }
+
     // Totals block: style rows containing 'Standard Subtotal', 'Hybrid Subtotal', 'Combined Subtotal', 'PM Add-on (10%)', 'TOTAL'
     for (let r = 1; r <= maxRow; r++) {
       const a = XLSX.utils.encode_cell({ r: r-1, c: 7 }); // label column in our sheet (col 8)
@@ -2076,8 +2175,18 @@ function exportToExcel() {
         if (ws[labelAddr]) ws[labelAddr].s = Object.assign({}, ws[labelAddr].s || {}, STY.totals(theme));
         if (ws[valAddr])   ws[valAddr].s   = Object.assign({}, ws[valAddr].s   || {}, STY.totals(theme));
         if (ws[valAddr])   ws[valAddr].z   = STY.money.numFmt;
+        // Give the final TOTAL row extra weight: larger font, taller row
+        if (v === 'TOTAL') {
+          const big = { font: { name: 'Inter', sz: 13, bold: true, color: { rgb: theme.accentText } } };
+          if (ws[labelAddr]) ws[labelAddr].s = Object.assign({}, ws[labelAddr].s, big);
+          if (ws[valAddr])   ws[valAddr].s   = Object.assign({}, ws[valAddr].s,   big);
+          ws['!rows'][r-1] = { hpt: 24 };
+        }
       }
     }
+
+    // ── Print setup: comfortable margins for PDF/paper output ──
+    ws['!margins'] = { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 };
   }
 
   function styleSummaryWorksheet(ws, theme) {
@@ -2086,10 +2195,23 @@ function exportToExcel() {
     const maxRow = range.e.r + 1;
 
     ws['!freeze'] = { xSplit: 0, ySplit: 3 };
+    ws['!merges'] = ws['!merges'] || [];
+    ws['!rows']   = ws['!rows']   || [];
+
+    // Title bar: merge A1:E1 (title) and F1:G1 (date, right-aligned)
+    ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 4 } });
+    ws['!merges'].push({ s: { r: 0, c: 5 }, e: { r: 0, c: maxCol - 1 } });
     styleRow(ws, 1, 1, maxCol, STY.header(theme));
+    const dAddr = XLSX.utils.encode_cell({ r: 0, c: 5 });
+    if (ws[dAddr]) ws[dAddr].s = Object.assign({}, ws[dAddr].s || {}, {
+      alignment: { vertical: 'center', horizontal: 'right' },
+      font: { name: 'Inter', sz: 11, bold: false, color: { rgb: theme.accentText } },
+    });
+    ws['!rows'][0] = { hpt: 30 };
 
     // Table header is row 3
     styleRow(ws, 3, 1, maxCol, STY.tableHeader);
+    ws['!rows'][2] = { hpt: 24 };
 
     // Zebra from row 4 to before blank or end
     let start = 4, end = maxRow;
@@ -2102,6 +2224,23 @@ function exportToExcel() {
         if (ws[a]) ws[a].z = STY.money.numFmt;
       }
     }
+
+    // Grand Total row: find by label in col C and emphasize it
+    for (let r = 4; r <= maxRow; r++) {
+      const a = XLSX.utils.encode_cell({ r: r-1, c: 2 });
+      if ((ws[a] && ws[a].v) === 'Grand Total') {
+        styleRow(ws, r, 1, maxCol, STY.totals(theme));
+        const big = { font: { name: 'Inter', sz: 13, bold: true, color: { rgb: theme.accentText } } };
+        const lAddr = XLSX.utils.encode_cell({ r: r-1, c: 2 });
+        const vAddr = XLSX.utils.encode_cell({ r: r-1, c: 6 });
+        if (ws[lAddr]) ws[lAddr].s = Object.assign({}, ws[lAddr].s, big);
+        if (ws[vAddr]) ws[vAddr].s = Object.assign({}, ws[vAddr].s, big);
+        ws['!rows'][r-1] = { hpt: 24 };
+      }
+    }
+
+    // Print margins
+    ws['!margins'] = { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 };
   }
 
   /*
@@ -2168,10 +2307,10 @@ function exportToExcel() {
 
     // Include time columns in the export (matching UI)
     return [
-      ['Front Row – Pricing Quote','','','','','','','','','',`Date: ${today}`],
+      ['Front Row – Pricing Quote','','','','','','',`Date: ${today}`,'',''],
       ['Client:', client.name, '', 'Project:', proj.name],
       [],
-      ['── STANDARD ──'],
+      ['STANDARD SERVICES'],
       ['EC or VC','MASTER or Localization','Content Element','Content Level','Time / ASIN (h)','Price / ASIN (€)','# ASINs','# Languages','Line Total (€)','Total Time (h)'],
       ...stdRows.map(r => {
         const tpa = Number(r.timePerAsin) || 0;
@@ -2179,7 +2318,7 @@ function exportToExcel() {
         return [r.ec_vc, r.type, r.element, r.level, tpa, r.price, r.asins, r.langs, r.price*r.asins*r.langs, timeT];
       }),
       [],
-      ['── HYBRID ──'],
+      ['HYBRID PACKAGES'],
       ['Account','MASTER or Localization','Element','Level','ASIN Range','Flat Fee (€)','# Languages','Line Total (€)'],
       ...hybRows.map(r => ['EC', r.type, 'EC-Content', 'Hybrid', `${r.rangeMin}–${r.rangeMax}`, r.price, r.langs, r.price*r.langs]),
       [],
@@ -2189,6 +2328,22 @@ function exportToExcel() {
       ['','','','','','','','PM Add-on (10%)',   addon],
       ['','','','','','','','TOTAL',             total],
     ];
+  }
+
+  /*
+    setPrintAreas(wb) — registers each sheet's used range as its print
+    area, so File → Print / Export to PDF captures exactly the quote.
+  */
+  function setPrintAreas(wb) {
+    wb.Workbook = wb.Workbook || {};
+    wb.Workbook.Names = wb.Workbook.Names || [];
+    wb.SheetNames.forEach((name, i) => {
+      const ws = wb.Sheets[name];
+      if (!ws || !ws['!ref']) return;
+      const r = XLSX.utils.decode_range(ws['!ref']);
+      const ref = `'${name}'!$A$1:$${XLSX.utils.encode_col(r.e.c)}$${r.e.r + 1}`;
+      wb.Workbook.Names.push({ Name: '_xlnm.Print_Area', Sheet: i, Ref: ref });
+    });
   }
 
   const colWidths = [{wch:12},{wch:22},{wch:20},{wch:18},{wch:14},{wch:16},{wch:10},{wch:12},{wch:16},{wch:14}];
@@ -2210,6 +2365,7 @@ function exportToExcel() {
     XLSX.utils.book_append_sheet(wb, ws, 'Quote');
 
     const safe = s => s.replace(/[^a-zA-Z0-9_\-]/g,'_').slice(0,30);
+    setPrintAreas(wb);
     XLSX.writeFile(wb, `FrontRow_${safe(client.name)}_${safe(proj.name)}_${today}.xlsx`);
 
   } else {
@@ -2222,7 +2378,7 @@ function exportToExcel() {
 
     // Build Summary sheet
     const summaryRows = [
-      ['Front Row – Multi-Project Export','','','','Date:', today],
+      ['Front Row – Multi-Project Export','','','','',`Date: ${today}`,''],
       [],
       ['#', 'Client', 'Project', 'Std Subtotal (€)', 'Hybrid Subtotal (€)', 'PM Add-on (€)', 'TOTAL (€)'],
     ];
@@ -2264,6 +2420,7 @@ function exportToExcel() {
     });
 
 
+    setPrintAreas(wb);
     XLSX.writeFile(wb, `FrontRow_MultiExport_${today}.xlsx`);
   }
 }
@@ -2312,6 +2469,33 @@ document.getElementById('hybrid-filter-type').addEventListener('change', renderH
 
 const STORAGE_KEY = 'frontrow_pricing_tool_v1';
 
+/*
+  storageAvailable() — actually test localStorage with a write+read.
+  In some environments (e.g. viewing the file inside Claude's artifact
+  preview, private browsing modes, or sandboxed webviews) localStorage
+  throws or silently drops data. We must KNOW, not assume.
+*/
+function storageAvailable() {
+  try {
+    const k = '__fr_storage_test__';
+    localStorage.setItem(k, '1');
+    const ok = localStorage.getItem(k) === '1';
+    localStorage.removeItem(k);
+    return ok;
+  } catch (_) {
+    return false;
+  }
+}
+const STORAGE_OK = storageAvailable();
+
+/* Visible save-status indicator in the sidebar footer */
+function setSaveStatus(cls, text) {
+  const el = document.getElementById('save-status');
+  if (!el) return;
+  el.className = 'save-status' + (cls ? ' ' + cls : '');
+  el.textContent = text;
+}
+
 function serializeAppState() {
   return {
     schemaVersion: 1,
@@ -2327,12 +2511,19 @@ function hydrateAppState(state) {
   activeClientId = state.activeClientId || null;
   activeProjectId = state.activeProjectId || null;
 
-  // Ensure any missing fields are backfilled for older saves
+  // Ensure any missing fields are backfilled for older saves.
+  // IMPORTANT: also normalize state arrays to exactly PRICING.length —
+  // saves from older tool versions may have a different row count, which
+  // previously caused values to leak between projects.
   clients.forEach(c => {
     if (typeof c.expanded !== 'boolean') c.expanded = true;
     if (!Array.isArray(c.projects)) c.projects = [];
     c.projects.forEach(p => {
-      if (!Array.isArray(p.state)) p.state = PRICING.map(() => ({ asins: 0, langs: 0 }));
+      const old = Array.isArray(p.state) ? p.state : [];
+      p.state = PRICING.map((_, i) => ({
+        asins: Number(old[i] && old[i].asins) || 0,
+        langs: Number(old[i] && old[i].langs) || 0,
+      }));
       if (!p.hybrid) p.hybrid = { master: { selectedIdx: -1, langs: 0 }, loc: { selectedIdx: -1, langs: 0 } };
       if (!p.hybrid.master) p.hybrid.master = { selectedIdx: -1, langs: 0 };
       if (!p.hybrid.loc) p.hybrid.loc = { selectedIdx: -1, langs: 0 };
@@ -2342,17 +2533,32 @@ function hydrateAppState(state) {
   // Selection is ephemeral; do not restore
   selectedProjectIds.clear();
   lastClickedKey = null;
+  // The quote UI no longer reflects any project until one is opened
+  _quoteUiLoaded = false;
 }
 
 let _saveTimer = null;
 function scheduleSave() {
   if (_saveTimer) clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => {
+    if (!STORAGE_OK) {
+      setSaveStatus('error', '⚠ Browser storage unavailable — data will NOT survive closing. Use ⬇ Backup!');
+      return;
+    }
     try {
       const payload = JSON.stringify(serializeAppState());
       localStorage.setItem(STORAGE_KEY, payload);
+      // Verify the write actually stuck
+      if (localStorage.getItem(STORAGE_KEY) === payload) {
+        const t = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const nProj = clients.reduce((n, c) => n + c.projects.length, 0);
+        setSaveStatus('ok', `✓ Saved ${t} — ${clients.length} clients, ${nProj} projects`);
+      } else {
+        setSaveStatus('error', '⚠ Save could not be verified — use ⬇ Backup!');
+      }
     } catch (e) {
       console.warn('Autosave failed:', e);
+      setSaveStatus('error', '⚠ Save failed: ' + (e && e.name === 'QuotaExceededError' ? 'storage full' : e.message) + ' — use ⬇ Backup!');
     }
   }, 500);
 }
@@ -2409,10 +2615,88 @@ function loadSavedState() {
 
 /*
   Autosave on tab close / background.
+  flushSaveNow() writes synchronously (no debounce) and first flushes the
+  currently open project's live inputs into its project object.
+  We listen on pagehide and visibilitychange in addition to beforeunload,
+  because Safari and mobile browsers often skip beforeunload entirely.
 */
-window.addEventListener('beforeunload', () => {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeAppState())); } catch (_) {}
+function flushSaveNow() {
+  try {
+    saveQuoteState(); // Flush live inputs of the open project (no-op if none)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeAppState()));
+  } catch (_) {}
+}
+window.addEventListener('beforeunload', flushSaveNow);
+window.addEventListener('pagehide', flushSaveNow);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushSaveNow();
 });
+
+/* ─── MANUAL BACKUP (storage-independent) ────────────────────── */
+
+/*
+  exportBackup() — downloads the complete app state as a JSON file.
+  Works even when localStorage is blocked, so this is the safety net.
+*/
+function exportBackup() {
+  saveQuoteState(); // Flush live inputs first
+  const payload = JSON.stringify(serializeAppState(), null, 2);
+  const blob = new Blob([payload], { type: 'application/json' });
+  const a = document.createElement('a');
+  const d = new Date();
+  const stamp = d.toISOString().slice(0, 16).replace('T', '_').replace(':', '-');
+  a.href = URL.createObjectURL(blob);
+  a.download = `pricing-tool-backup_${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
+/*
+  importBackup(event) — restores the complete app state from a backup
+  file created by exportBackup(). Replaces all current data.
+*/
+function importBackup(event) {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = ''; // Allow re-importing the same file later
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      if (!parsed || parsed.schemaVersion !== 1 || !Array.isArray(parsed.clients)) {
+        alert('This file is not a valid Pricing Tool backup.');
+        return;
+      }
+      if (!confirm(`Restore backup with ${parsed.clients.length} client(s)? This replaces all current data.`)) return;
+      hydrateAppState(parsed);
+      renderSidebar();
+      if (activeClientId && activeProjectId) {
+        openQuoteBuilder(activeClientId, activeProjectId);
+      } else if (activeClientId) {
+        openClientOverviewById(activeClientId);
+      } else {
+        showScreen('welcome');
+      }
+      updateExportButton();
+      scheduleSave();
+    } catch (e) {
+      alert('Could not read backup file: ' + e.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* Startup storage warning — make a blocked-storage environment impossible to miss */
+if (!STORAGE_OK) {
+  setSaveStatus('error', '⚠ Browser storage is BLOCKED here. Nothing will survive closing this page. Download the file and open it directly in your browser, and use ⬇ Backup / ⬆ Restore meanwhile.');
+  setTimeout(() => {
+    alert('⚠ Warning: browser storage is not available in this environment.\n\nYour data will NOT be saved when you close this page.\n\nIf you are viewing this inside Claude, download the file and open it directly in Chrome/Firefox/Safari instead. You can also use the "Backup" button (bottom of the sidebar) to download your data as a file and "Restore" to load it again.');
+  }, 800);
+} else {
+  setSaveStatus('', 'Autosave active');
+}
 </script>
 </body>
 </html>
